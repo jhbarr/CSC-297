@@ -33,14 +33,16 @@ int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
 {
     int result = vals[0];
 
-    clock_t start = clock();
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     for (int i = 1; i < len; i++)
     {
         result = operator_func(result, vals[i]);
     }
-    clock_t end = clock();
+    double time_diff = (end.tv_sec - start.tv_sec) +
+                       (end.tv_nsec - start.tv_nsec) / 1e9;
 
-    double time_diff = ((double)(end - start)) / CLOCKS_PER_SEC;
     printf("Serial\n  Result: %d\n  Time: %lf\n", result, time_diff);
 
     // Return the resulting value
@@ -57,7 +59,9 @@ int parallel_reduce(int vals[], int len)
     int i;
     int result = 0;
 
-    clock_t start = clock();
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
 #pragma omp declare reduction( \
     gcd : int : omp_out = gcd(omp_out, omp_in) ) \
     initializer(omp_priv = 0)
@@ -68,9 +72,9 @@ int parallel_reduce(int vals[], int len)
             result += vals[i];
         }
     }
-    clock_t end = clock();
+    double time_diff = (end.tv_sec - start.tv_sec) +
+                       (end.tv_nsec - start.tv_nsec) / 1e9;
 
-    double time_diff = ((double)(end - start)) / CLOCKS_PER_SEC;
     printf("Parallel\n  Result: %d\n  Time: %lf\n", result, time_diff);
     // After the reduction, return the result
     return result;
