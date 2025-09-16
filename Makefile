@@ -12,3 +12,6 @@ loops: Tutorials/loops.c
 
 reduce: Projects/reduce.c
 	$(CC) $(CFLAGS) Projects/reduce.c -o bin/reduce $(LDFLAGS)
+
+map: Projects/map.c
+	$(CC) $(CFLAGS) Projects/map.c -o bin/map $(LDFLAGS)
