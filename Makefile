@@ -5,10 +5,10 @@ LDFLAGS = -L/opt/homebrew/opt/libomp/lib -lomp
 all: synchronization loops reduce
 
 synchronization: Tutorials/synchronization.c
-	$(CC) $(CFLAGS) Tutorials/synchronization.c -o synchronization $(LDFLAGS)
+	$(CC) $(CFLAGS) Tutorials/synchronization.c -o bin/synchronization $(LDFLAGS)
 
 loops: Tutorials/loops.c
-	$(CC) $(CFLAGS) Tutorials/loops.c -o loops $(LDFLAGS)
+	$(CC) $(CFLAGS) Tutorials/loops.c -o bin/loops $(LDFLAGS)
 
 reduce: Projects/reduce.c
-	$(CC) $(CFLAGS) Projects/reduce.c -o reduce $(LDFLAGS)
+	$(CC) $(CFLAGS) Projects/reduce.c -o bin/reduce $(LDFLAGS)

@@ -61,9 +61,8 @@ int main(int argc, char *argv[])
 {
     // Instantiate the basic variables for the reduction step
     // These will be taken from the command line
-    char operator = argv[1][0];
-    int len = atoi(argv[2]);
-    int MAX_VAL = atoi(argv[3]);
+    int len = atoi(argv[1]);
+    int MAX_VAL = atoi(argv[2]);
 
     // Create a list of random integer variables of length len with max value MAX_VAL
     int vals[len];
