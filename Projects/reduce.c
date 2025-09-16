@@ -2,11 +2,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 // Basic operator functions
 int iadd(int x, int y) { return x + y; }
 int imult(int x, int y) { return x * y; }
 int imax(int x, int y) { return x > y ? x : y; }
+
+
+int gcd(int a, int b)
+{
+    int result = ((a < b) ? a : b); // result = min(a, b)
+    while (result > 0) {
+        if (a % result == 0 && b % result == 0) {
+            break;
+        }
+        result--;
+    } // After exiting loop we have found gcd
+    return result;
+}
+
+
 
 // serial_reduce() -> This function reduces a list of variables into one using a given operation function
 // INPUTS
@@ -42,7 +58,10 @@ int parallel_reduce(int vals[], int len)
     int result = 0;
 
     clock_t start = clock();
-#pragma omp parallel for reduction(+ : result)
+#pragma omp declare reduction( \
+    gcd : int : omp_out = gcd(omp_out, omp_in) ) \
+    initializer(omp_priv = 0)
+#pragma omp parallel for reduction(gcd : result)
     {
         for (i = 0; i < len; i++)
         {
@@ -75,7 +94,7 @@ int main(int argc, char *argv[])
     int parallel_result = parallel_reduce(vals, len);
 
     // Calculate the serial result
-    int serial_result = serial_reduce(iadd, vals, len);
+    int serial_result = serial_reduce(gcd, vals, len);
 
     return 0;
 }
