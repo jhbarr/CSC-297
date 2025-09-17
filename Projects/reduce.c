@@ -9,20 +9,19 @@ int iadd(int x, int y) { return x + y; }
 int imult(int x, int y) { return x * y; }
 int imax(int x, int y) { return x > y ? x : y; }
 
-
 int gcd(int a, int b)
 {
     int result = ((a < b) ? a : b); // result = min(a, b)
-    while (result > 0) {
-        if (a % result == 0 && b % result == 0) {
+    while (result > 0)
+    {
+        if (a % result == 0 && b % result == 0)
+        {
             break;
         }
         result--;
     } // After exiting loop we have found gcd
     return result;
 }
-
-
 
 // serial_reduce() -> This function reduces a list of variables into one using a given operation function
 // INPUTS
@@ -40,6 +39,8 @@ int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
     {
         result = operator_func(result, vals[i]);
     }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
     double time_diff = (end.tv_sec - start.tv_sec) +
                        (end.tv_nsec - start.tv_nsec) / 1e9;
 
@@ -59,11 +60,10 @@ int parallel_reduce(int vals[], int len)
     int i;
     int result = 0;
 
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    double start = omp_get_wtime();
 
-#pragma omp declare reduction( \
-    gcd : int : omp_out = gcd(omp_out, omp_in) ) \
+#pragma omp declare reduction(                    \
+        gcd:int : omp_out = gcd(omp_out, omp_in)) \
     initializer(omp_priv = 0)
 #pragma omp parallel for reduction(gcd : result)
     {
@@ -72,8 +72,9 @@ int parallel_reduce(int vals[], int len)
             result += vals[i];
         }
     }
-    double time_diff = (end.tv_sec - start.tv_sec) +
-                       (end.tv_nsec - start.tv_nsec) / 1e9;
+    double end = omp_get_wtime();
+
+    double time_diff = end - start;
 
     printf("Parallel\n  Result: %d\n  Time: %lf\n", result, time_diff);
     // After the reduction, return the result

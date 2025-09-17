@@ -13,7 +13,6 @@ int map_function(int x)
     {
         return x * x;
     }
-
     else
     {
         return x * x * x;
@@ -61,7 +60,7 @@ void parallel_map(int (*operator_func)(int x), int vals[], int len)
     }
     double end = omp_get_wtime();
 
-    double time_diff = ((end - start)) / CLOCKS_PER_SEC;
+    double time_diff = end - start;
 
     // Print out the necessary information
     // for (int j = 0; j < len; j++)
@@ -93,8 +92,6 @@ int main(int argc, char *argv[])
 
     // Calculate the serial result
     serial_map(map_function, serial_vals, len);
-
-    return 0;
 
     return 0;
 }

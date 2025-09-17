@@ -15,3 +15,6 @@ reduce: Projects/reduce.c
 
 map: Projects/map.c
 	$(CC) $(CFLAGS) Projects/map.c -o bin/map $(LDFLAGS)
+
+filter: Projects/filter.c
+	${CC} ${CFLAGS} Projects/filter.c -o bin/filter ${LDFLAGS}
