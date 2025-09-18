@@ -55,7 +55,7 @@ int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
 //  - char operator -> The operator the should be used for the reduction
 //  - int vals[] -> This is a lit of integer values that will be reduced using the operator function
 //  - int len -> The length of the value array
-int parallel_reduce(int vals[], int len)
+int parallel_reduce(int vals[], int len, int n_threads)
 {
     int i;
     int result = 0;
@@ -65,7 +65,7 @@ int parallel_reduce(int vals[], int len)
 #pragma omp declare reduction(                    \
         gcd:int : omp_out = gcd(omp_out, omp_in)) \
     initializer(omp_priv = 0)
-#pragma omp parallel for reduction(gcd : result)
+#pragma omp parallel for reduction(gcd : result) num_threads(n_threads)
     {
         for (i = 0; i < len; i++)
         {
@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
     // These will be taken from the command line
     int len = atoi(argv[1]);
     int MAX_VAL = atoi(argv[2]);
+    int num_threads = atoi(argv[3]);
 
     // Create a list of random integer variables of length len with max value MAX_VAL
     int vals[len];
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
     }
 
     // Calculate parallel result
-    int parallel_result = parallel_reduce(vals, len);
+    int parallel_result = parallel_reduce(vals, len, num_threads);
 
     // Calculate the serial result
     int serial_result = serial_reduce(gcd, vals, len);

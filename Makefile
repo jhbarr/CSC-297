@@ -18,3 +18,6 @@ map: Projects/map.c
 
 filter: Projects/filter.c
 	${CC} ${CFLAGS} Projects/filter.c -o bin/filter ${LDFLAGS}
+
+dining_philosophers: Projects/dining_philosophers.c
+	${CC} ${CFLAGS} Projects/dining_philosophers.c -o bin/dining_philosophers ${LDFLAGS}
