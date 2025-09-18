@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 // Basic operator functions
 int iadd(int x, int y) { return x + y; }
@@ -18,7 +19,7 @@ int gcd(int a, int b)
         {
             break;
         }
-        result--;
+        //result--;
     } // After exiting loop we have found gcd
     return result;
 }
@@ -30,12 +31,12 @@ int gcd(int a, int b)
 //  - int len -> The length of the value array
 int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
 {
-    int result = vals[0];
+    int result = 0;
 
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    for (int i = 1; i < len; i++)
+    for (int i = 0; i < len; i++)
     {
         result = operator_func(result, vals[i]);
     }
@@ -65,13 +66,16 @@ int parallel_reduce(int vals[], int len, int n_threads)
 #pragma omp declare reduction(                    \
         gcd:int : omp_out = gcd(omp_out, omp_in)) \
     initializer(omp_priv = 0)
+<<<<<<< HEAD
 #pragma omp parallel for reduction(gcd : result) num_threads(n_threads)
+=======
+#pragma omp parallel for reduction(gcd : result)
+    for (i = 0; i < len; i++)
+>>>>>>> 33c9d7cac0050a417854bbcd7806eb6b489aa29f
     {
-        for (i = 0; i < len; i++)
-        {
-            result += vals[i];
-        }
+        result += gcd(result, vals[i]);
     }
+
     double end = omp_get_wtime();
 
     double time_diff = end - start;
@@ -90,17 +94,24 @@ int main(int argc, char *argv[])
     int num_threads = atoi(argv[3]);
 
     // Create a list of random integer variables of length len with max value MAX_VAL
-    int vals[len];
+    int vals1[len];
+    int vals2[len];
     for (int i = 0; i < len; i++)
     {
-        vals[i] = (rand() % MAX_VAL) + 1;
+        vals1[i] = (rand() % MAX_VAL) + 1;
     }
 
+    memcpy(vals2, vals1, len * sizeof(int));
+
     // Calculate parallel result
+<<<<<<< HEAD
     int parallel_result = parallel_reduce(vals, len, num_threads);
+=======
+    int parallel_result = parallel_reduce(vals1, len);
+>>>>>>> 33c9d7cac0050a417854bbcd7806eb6b489aa29f
 
     // Calculate the serial result
-    int serial_result = serial_reduce(gcd, vals, len);
+    int serial_result = serial_reduce(gcd, vals2, len);
 
     return 0;
 }
