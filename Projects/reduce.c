@@ -12,6 +12,12 @@ int imax(int x, int y) { return x > y ? x : y; }
 
 int gcd(int a, int b)
 {
+    if (a == 0) {
+        return b;
+    } else if (b == 0) {
+        return a;
+    }
+
     int result = ((a < b) ? a : b); // result = min(a, b)
     while (result > 0)
     {
@@ -19,7 +25,7 @@ int gcd(int a, int b)
         {
             break;
         }
-        //result--;
+        result--;
     } // After exiting loop we have found gcd
     return result;
 }
@@ -66,14 +72,10 @@ int parallel_reduce(int vals[], int len, int n_threads)
 #pragma omp declare reduction(                    \
         gcd:int : omp_out = gcd(omp_out, omp_in)) \
     initializer(omp_priv = 0)
-<<<<<<< HEAD
-#pragma omp parallel for reduction(gcd : result) num_threads(n_threads)
-=======
 #pragma omp parallel for reduction(gcd : result)
     for (i = 0; i < len; i++)
->>>>>>> 33c9d7cac0050a417854bbcd7806eb6b489aa29f
     {
-        result += gcd(result, vals[i]);
+        result = gcd(result, vals[i]);
     }
 
     double end = omp_get_wtime();
@@ -98,20 +100,20 @@ int main(int argc, char *argv[])
     int vals2[len];
     for (int i = 0; i < len; i++)
     {
-        vals1[i] = (rand() % MAX_VAL) + 1;
+        vals1[i] = (rand() % MAX_VAL) + 20;
+        printf("%d \n", vals1[i]);
     }
 
     memcpy(vals2, vals1, len * sizeof(int));
 
     // Calculate parallel result
-<<<<<<< HEAD
-    int parallel_result = parallel_reduce(vals, len, num_threads);
-=======
-    int parallel_result = parallel_reduce(vals1, len);
->>>>>>> 33c9d7cac0050a417854bbcd7806eb6b489aa29f
+    int parallel_result = parallel_reduce(vals1, len, num_threads);
 
     // Calculate the serial result
     int serial_result = serial_reduce(gcd, vals2, len);
+
+    // int test_gcd = gcd(0, 4);
+    // printf("%d \n", test_gcd);
 
     return 0;
 }
