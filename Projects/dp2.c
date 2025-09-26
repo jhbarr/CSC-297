@@ -13,7 +13,6 @@
 void eat(int tid)
 {
     printf("Thread %d is eating\n", tid);
-    // sleep(1);
     return;
 }
 
@@ -21,7 +20,7 @@ void eat(int tid)
 //
 // INPUTS
 // - int num_threads -> This is the number of threads that should be running
-void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
+void philosophers_eat(int n_threads, int chopsticks[], int eaten[], int num_eats)
 {
     // Idea
     // A philosopher tries to grab a left chopstick then a right one
@@ -35,7 +34,7 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
         int left = tid;
         int right = (tid + 1) % n_threads;
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < num_eats; i++)
         {
             usleep(100000 + rand() % (50000 - 10000 + 1));
             // Attempt to grab the right and left chopsticks simultaneously
@@ -79,6 +78,8 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
 int main(int argc, char *argv[])
 {
     int n_threads = atoi(argv[1]);
+    int num_eats = atoi(argv[2]);
+
     int chopsticks[n_threads];
     int eaten[n_threads];
     for (int i = 0; i < n_threads; i++)
@@ -87,7 +88,7 @@ int main(int argc, char *argv[])
         eaten[i] = 0;
     }
 
-    philosophers_eat(n_threads, chopsticks, eaten);
+    philosophers_eat(n_threads, chopsticks, eaten, num_eats);
 
     for (int i = 0; i < n_threads; i++)
     {
