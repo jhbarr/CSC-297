@@ -94,6 +94,10 @@ int parallel_reduce(int vals[], int len, int n_threads, double *parallel_time)
 
 int main(int argc, char *argv[])
 {
+    if (argc != 3) {
+        printf("Invalid Arguments: please pass length and MAX_VAL \n");
+        return 1;
+    }
     // Instantiate the basic variables for the reduction step
     // These will be taken from the command line
     int len = atoi(argv[1]);

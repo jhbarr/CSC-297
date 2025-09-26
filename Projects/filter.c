@@ -170,6 +170,10 @@ int *parallel_filter(int *arr, int arr_len, int *out_len, bool (*predicate_func)
 
 int main(int argc, char *argv[])
 {
+    if (argc != 2) {
+        printf("Invalid Arguments: please pass num_threads \n");
+        return 1;
+    }
     // Create the array using the command line arg
     int arr_len = atoi(argv[1]);
     int arr[arr_len];

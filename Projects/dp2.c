@@ -20,12 +20,15 @@ void eat(int tid)
 //
 // INPUTS
 // - int num_threads -> This is the number of threads that should be running
+// - int chopsticks[] -> Inticates the availbaility of chopstick i (chopsticks[i] = 1 implies available, 0 implies unavailable)
+// - int eaten[] -> Inticates the number of times philosopher i has eaten so far
+// - int num_eats -> Inticaties the number of times each philosopher must eat to complete the problem
 void philosophers_eat(int n_threads, int chopsticks[], int eaten[], int num_eats)
 {
     // Idea
-    // A philosopher tries to grab a left chopstick then a right one
-    // If either are not available, then the thread drops both
-    // It then waits a random amount of time to then try again
+    // A philosopher waits a random amout of time then tries to grab a left chopstick then a right one
+    // If either are not available, then the philosopher drops both
+    // The phiilosopher tries again until they have eaten the required number of times
 
 #pragma omp parallel num_threads(n_threads)
     {
@@ -39,7 +42,7 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[], int num_eats
             usleep(100000 + rand() % (50000 - 10000 + 1));
             // Attempt to grab the right and left chopsticks simultaneously
             // If they are not available, wait a random amount of time and then try again
-            bool cont = (eaten[tid] < 3);
+            bool cont = true;
             while (cont)
             {
                 // Enter a critical section so that you don't alter or read false information
@@ -77,6 +80,10 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[], int num_eats
 
 int main(int argc, char *argv[])
 {
+    if (argc != 3) {
+        printf("Invalid Arguments: please pass num_threads and num_eats \n");
+        return 1;
+    }
     int n_threads = atoi(argv[1]);
     int num_eats = atoi(argv[2]);
 

@@ -77,6 +77,10 @@ void philosophers_eat(int tid, int n_threads, omp_lock_t chopsticks[], int count
 
 int main(int argc, char *argv[])
 {
+    if (argc != 2) {
+        printf("Invalid Arguments: please pass num_threads \n");
+        return 1;
+    }
     int n_threads = atoi(argv[1]);
 
     // Initialize chopstick lock
