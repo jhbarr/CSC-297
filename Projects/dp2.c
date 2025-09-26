@@ -13,7 +13,7 @@
 void eat(int tid)
 {
     printf("Thread %d is eating\n", tid);
-    sleep(1);
+    // sleep(1);
     return;
 }
 
@@ -31,12 +31,13 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
 #pragma omp parallel num_threads(n_threads)
     {
         int tid = omp_get_thread_num();
+        srand(omp_get_wtime() + tid);
         int left = tid;
         int right = (tid + 1) % n_threads;
 
         for (int i = 0; i < 3; i++)
         {
-
+            usleep(100000 + rand() % (50000 - 10000 + 1));
             // Attempt to grab the right and left chopsticks simultaneously
             // If they are not available, wait a random amount of time and then try again
             bool cont = (eaten[tid] < 3);
@@ -55,7 +56,7 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
                 // If we did not acquire the chopsticks, wait a random amount of time
                 if (cont)
                 {
-                    int rand_int = 10 + rand() % (50 - 10 + 1);
+                    int rand_int = 100000 + rand() % (50000 - 10000 + 1);
                     usleep(rand_int);
                 }
             }
