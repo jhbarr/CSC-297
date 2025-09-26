@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             serial_map(map_function, serial_vals, len, &serial_time);
 
             // Check that the two results are the same
-            assert(memcmp(serial_vals, serial_vals, len * sizeof(int)) == 0);
+            assert(memcmp(parallel_vals, serial_vals, len * sizeof(int)) == 0);
             printf("Assertion 1 passed: The two results are the same\n");
 
             // Write the data to the csv file

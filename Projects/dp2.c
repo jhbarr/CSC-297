@@ -34,39 +34,43 @@ void philosophers_eat(int n_threads, int chopsticks[], int eaten[])
         int left = tid;
         int right = (tid + 1) % n_threads;
 
-        // Attempt to grab the right and left chopsticks simultaneously
-        // If they are not available, wait a random amount of time and then try again
-        bool cont = (eaten[tid] < 3);
-        while (cont)
+        for (int i = 0; i < 3; i++)
         {
-            // Enter a critical section so that you don't alter or read false information
-#pragma omp critical
+
+            // Attempt to grab the right and left chopsticks simultaneously
+            // If they are not available, wait a random amount of time and then try again
+            bool cont = (eaten[tid] < 3);
+            while (cont)
             {
-                if (chopsticks[left] == 1 && chopsticks[right] == 1)
+                // Enter a critical section so that you don't alter or read false information
+#pragma omp critical
                 {
-                    chopsticks[left]--;
-                    chopsticks[right]--;
-                    cont = false;
+                    if (chopsticks[left] == 1 && chopsticks[right] == 1)
+                    {
+                        chopsticks[left]--;
+                        chopsticks[right]--;
+                        cont = false;
+                    }
+                }
+                // If we did not acquire the chopsticks, wait a random amount of time
+                if (cont)
+                {
+                    int rand_int = 10 + rand() % (50 - 10 + 1);
+                    usleep(rand_int);
                 }
             }
-            // If we did not acquire the chopsticks, wait a random amount of time
-            if (cont)
-            {
-                int rand_int = 10000 + rand() % (50000 - 10000 + 1);
-                usleep(rand_int);
-            }
-        }
 
-        // Have the philosopher eat
-        eat(tid);
+            // Have the philosopher eat
+            eat(tid);
 #pragma omp atomic
-        eaten[tid]++;
+            eaten[tid]++;
 
-        // Release the chopsticks once the thread is done eating
+            // Release the chopsticks once the thread is done eating
 #pragma omp critical
-        {
-            chopsticks[left]++;
-            chopsticks[right]++;
+            {
+                chopsticks[left]++;
+                chopsticks[right]++;
+            }
         }
     }
 }
@@ -82,10 +86,7 @@ int main(int argc, char *argv[])
         eaten[i] = 0;
     }
 
-    for (int i = 0; i < 3; i++)
-    {
-        philosophers_eat(n_threads, chopsticks, eaten);
-    }
+    philosophers_eat(n_threads, chopsticks, eaten);
 
     for (int i = 0; i < n_threads; i++)
     {
