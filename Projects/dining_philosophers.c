@@ -6,32 +6,79 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-// void think() -> This just prints out that a thread is thinking
-//
-// INPUTS
-//  - int tid -> The id of the thread that is thinking
-void think(int tid)
-{
-    printf("Thread %d is thinking\n", tid);
-    return;
-}
-
 // void eat() -> Prints that a thread is eating
 //
 // INPUTS
 //  - int tid -> The id of the thread that is eating
-void eat(int tid)
+void eat(int tid, int count)
 {
-    printf("Thread %d is eating\n", tid);
+    printf("Thread %d is eating, with count %d\n", tid, count);
     return;
+}
+
+// void semaphore() -> Implements a counting semaphore so that maximum n-1 threads can attempt to pick up a chopstick
+//
+// INPUTS
+//  - int* count -> A pointer to the semaphore count value
+//  - omp_lock_t* -> The address of the semaphore lock
+void acquire_semaphore(int *count, omp_lock_t *sem_lock)
+{
+    // Have the thread loop continuously until it can aquire the semaphore lock
+    // In that case, it can then exit this function and enter the critical section
+    while (1)
+    {
+        omp_set_lock(sem_lock);
+        // Check if the semaphore value is greater than zero
+        // If so, we can enter the critical section
+        if ((*count) > 0)
+        {
+            // Decrement the semaphore value by one
+            (*count)--;
+            omp_unset_lock(sem_lock);
+            break;
+        }
+        omp_unset_lock(sem_lock);
+    }
+}
+
+// void release_semaphore() -> This has a thread put down the semaphore lock so that another thread
+//  can attempt to pick up the chopsticks
+//
+// INPUTS
+//  - int* count -> A pointer to the semaphore count value
+//  - omp_lock_t* -> The address of the semaphore lock
+void release_semaphore(int tid, int *count, omp_lock_t *sem_lock)
+{
+#pragma omp atomic
+    (*count)++;
+
+    printf("Thread %d is done eating, with count %d\n", tid, (*count));
 }
 
 // void philosophers_eat() -> This runs the dining philosophers problem
 //
 // INPUTS
 // - int num_threads -> This is the number of threads that should be running
-void philosophers_eat(int n_threads)
+void philosophers_eat(int tid, int n_threads, omp_lock_t chopsticks[], int count)
 {
+    int left = tid;
+    int right = (tid + 1) % n_threads;
+
+    omp_set_lock(&chopsticks[left]);
+    omp_set_lock(&chopsticks[right]);
+
+    // Have the thread eat
+    eat(tid, count);
+
+    // Put down the chopsticks
+    omp_unset_lock(&chopsticks[left]);
+    omp_unset_lock(&chopsticks[right]);
+}
+
+int main(int argc, char *argv[])
+{
+    int n_threads = atoi(argv[1]);
+
     // Initialize chopstick lock
     omp_lock_t chopsticks[n_threads];
     for (int i = 0; i < n_threads; i++)
@@ -39,42 +86,20 @@ void philosophers_eat(int n_threads)
         omp_init_lock(&chopsticks[i]);
     }
 
+    // Initialize "semaphore" variables
+    int count = n_threads - 1;
+    omp_lock_t sem_lock;
+    omp_init_lock(&sem_lock);
+
 #pragma omp parallel num_threads(n_threads)
     {
         int tid = omp_get_thread_num();
-        int left = tid;
-        int right = (tid + 1) % n_threads;
+        acquire_semaphore(&count, &sem_lock);
 
-        // Each thread tries to each three times
-        for (int round = 0; round < n_threads; round++)
-        {
-            // Have the threads think
-            think(tid);
+        philosophers_eat(tid, n_threads, chopsticks, count);
 
-            // Have the thread pick up the chopsticks
-            omp_set_lock(&chopsticks[left]);
-            omp_set_lock(&chopsticks[right]);
-
-            // Have the thread eat
-            eat(tid);
-
-            // Put down the chopsticks
-            omp_unset_lock(&chopsticks[left]);
-            omp_unset_lock(&chopsticks[right]);
-        }
+        release_semaphore(tid, &count, &sem_lock);
     }
-
-    // destroy locks
-    for (int i = 0; i < n_threads; i++)
-    {
-        omp_destroy_lock(&chopsticks[i]);
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    int n_threads = atoi(argv[1]);
-    philosophers_eat(n_threads);
 
     return 0;
 }

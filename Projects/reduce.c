@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 
 // Basic operator functions
 int iadd(int x, int y) { return x + y; }
@@ -12,9 +13,12 @@ int imax(int x, int y) { return x > y ? x : y; }
 
 int gcd(int a, int b)
 {
-    if (a == 0) {
+    if (a == 0)
+    {
         return b;
-    } else if (b == 0) {
+    }
+    else if (b == 0)
+    {
         return a;
     }
 
@@ -35,21 +39,20 @@ int gcd(int a, int b)
 //  - int (*operator_func)(int x, int y) -> This is a pointer to a function that takes in two integers and returns an int
 //  - int vals[] -> This is a lit of integer values that will be reduced using the operator function
 //  - int len -> The length of the value array
-int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
+int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len, double *serial_time)
 {
     int result = 0;
 
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    double start = omp_get_wtime();
 
     for (int i = 0; i < len; i++)
     {
         result = operator_func(result, vals[i]);
     }
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    double end = omp_get_wtime();
+    double time_diff = end - start;
 
-    double time_diff = (end.tv_sec - start.tv_sec) +
-                       (end.tv_nsec - start.tv_nsec) / 1e9;
+    *serial_time = time_diff;
 
     printf("Serial\n  Result: %d\n  Time: %lf\n", result, time_diff);
 
@@ -62,25 +65,27 @@ int serial_reduce(int (*operator_func)(int x, int y), int vals[], int len)
 //  - char operator -> The operator the should be used for the reduction
 //  - int vals[] -> This is a lit of integer values that will be reduced using the operator function
 //  - int len -> The length of the value array
-int parallel_reduce(int vals[], int len, int n_threads)
+int parallel_reduce(int vals[], int len, int n_threads, double *parallel_time)
 {
     int i;
     int result = 0;
 
     double start = omp_get_wtime();
 
-#pragma omp declare reduction(                    \
-        gcd:int : omp_out = gcd(omp_out, omp_in)) \
-    initializer(omp_priv = 0)
-#pragma omp parallel for reduction(gcd : result)
+// #pragma omp declare reduction(                    \
+//         gcd:int : omp_out = gcd(omp_out, omp_in)) \
+//     initializer(omp_priv = 0)
+#pragma omp parallel for reduction(+ : result)
     for (i = 0; i < len; i++)
     {
-        result = gcd(result, vals[i]);
+        // result = gcd(result, vals[i]);
+        result += vals[i];
     }
 
     double end = omp_get_wtime();
-
     double time_diff = end - start;
+
+    *parallel_time = time_diff;
 
     printf("Parallel\n  Result: %d\n  Time: %lf\n", result, time_diff);
     // After the reduction, return the result
@@ -93,27 +98,58 @@ int main(int argc, char *argv[])
     // These will be taken from the command line
     int len = atoi(argv[1]);
     int MAX_VAL = atoi(argv[2]);
-    int num_threads = atoi(argv[3]);
 
-    // Create a list of random integer variables of length len with max value MAX_VAL
-    int vals1[len];
-    int vals2[len];
+    int vals[len];
     for (int i = 0; i < len; i++)
     {
-        vals1[i] = (rand() % MAX_VAL) + 20;
-        printf("%d \n", vals1[i]);
+        int random_val = (rand() % MAX_VAL) + 1;
+        vals[i] = random_val;
     }
 
-    memcpy(vals2, vals1, len * sizeof(int));
+    // Open the CSV data file
+    FILE *fp;
+    fp = fopen("Data/reduce_data.csv", "w"); // Open for writing, overwriting if exists
 
-    // Calculate parallel result
-    int parallel_result = parallel_reduce(vals1, len, num_threads);
+    if (fp == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1); // Exit with an error code
+    }
 
-    // Calculate the serial result
-    int serial_result = serial_reduce(gcd, vals2, len);
+    // Write header row
+    fprintf(fp, "Thread Count,Trial,Serial Time,Parallel Time, Array Size\n");
 
-    // int test_gcd = gcd(0, 4);
-    // printf("%d \n", test_gcd);
+    for (int n_threads = 1; n_threads < 9; n_threads++)
+    {
+        for (int trial = 1; trial < 4; trial++)
+        {
+            // Create a list of random integer variables of length len with max value MAX_VAL
+            int serial_vals[len];
+            int parallel_vals[len];
+
+            memcpy(serial_vals, vals, len * sizeof(int));
+            memcpy(parallel_vals, vals, len * sizeof(int));
+
+            double parallel_time;
+            double serial_time;
+
+            // Calculate parallel result
+            int parallel_result = parallel_reduce(parallel_vals, len, n_threads, &parallel_time);
+
+            // Calculate the serial result
+            int serial_result = serial_reduce(iadd, serial_vals, len, &serial_time);
+
+            // Check that the two results are the same
+            assert(parallel_result == serial_result);
+            printf("\nAssertion 1 passed: The two results are the same\n");
+
+            // Write the data to the csv file
+            fprintf(fp, "%d,%d,%lf,%lf,%d\n", n_threads, trial, serial_time, parallel_time, len);
+        }
+    }
+
+    fclose(fp); // Close the file
+    printf("Data written to people.csv successfully\n");
 
     return 0;
 }
