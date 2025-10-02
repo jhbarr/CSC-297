@@ -13,6 +13,7 @@
 void eat(int tid)
 {
     printf("Thread %d is eating\n", tid);
+    // sleep(1);
     return;
 }
 
