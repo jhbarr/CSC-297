@@ -45,6 +45,7 @@ void acquire_semaphore(int *count, omp_lock_t *sem_lock)
 //  can attempt to pick up the chopsticks
 //
 // INPUTS
+//  - int tid -> Thread id number (0 through n)
 //  - int* count -> A pointer to the semaphore count value
 //  - omp_lock_t* -> The address of the semaphore lock
 void release_semaphore(int tid, int *count, omp_lock_t *sem_lock)
