@@ -1,9 +1,6 @@
 // Get the parent port and data from the main file
 const { parentPort, workerData } = require('worker_threads');
 
-// Destructure the object
-const { sharedBuffer, indexStart, indexEnd, predicate } = workerData;
-
 // Wrap the shared buffer in the integer array
 const array = new Int32Array(sharedBuffer);
 
@@ -14,6 +11,11 @@ function map(array, indexStart, indexEnd)
         const old_val = Atomics.load(array, i);
         Atomics.exchange(array, i, old_val * 2);
     }
+}
+
+function filter(array, newArray, indexStart, indexEnd)
+{
+
 }
 
 // Listen for messages from the main thread
