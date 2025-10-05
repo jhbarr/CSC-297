@@ -29,7 +29,7 @@ function runWorker(sharedData, indexStart, indexEnd, predicate)
             console.log(msg);
             resolve();
         });    
-        worker.on('error', reject);         // if worker throws
+        worker.on('error', reject);
         worker.on('exit', (code) => {
         if (code !== 0)
             reject(new Error(`Worker stopped with exit code ${code}`));
