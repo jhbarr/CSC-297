@@ -1,6 +1,8 @@
 // Get the parent port and data from the main file
 const { parentPort, workerData } = require('worker_threads');
 
+const {sharedBuffer, indexStart, indexEnd, predicate} = workerData;
+
 // Wrap the shared buffer in the integer array
 const array = new Int32Array(sharedBuffer);
 
@@ -13,16 +15,12 @@ function map(array, indexStart, indexEnd)
     }
 }
 
-function filter(array, newArray, indexStart, indexEnd)
-{
-
-}
 
 // Listen for messages from the main thread
 switch (predicate) {
-      case 'map':
+    case 'map':
         map(array, indexStart, indexEnd);
         break;
-    }
+}
 
 parentPort.postMessage(`Worker processed indexes ${indexStart}–${indexEnd}`);

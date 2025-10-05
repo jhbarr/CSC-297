@@ -23,7 +23,7 @@ function runWorker(sharedData, indexStart, indexEnd, predicate)
     };
 
     return new Promise((resolve, reject) => {
-        const worker = new Worker('./worker.js', { workerData: dataForWorker });
+        const worker = new Worker('./map_worker.js', { workerData: dataForWorker });
 
         worker.on('message', (msg) => {
             console.log(msg);
