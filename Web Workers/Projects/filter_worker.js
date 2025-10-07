@@ -25,11 +25,14 @@ function filter_1(arrayBuffer, indexStart, indexEnd)
     for (let i = indexStart; i < indexEnd; i++) {
         val = Atomics.load(array, i);
 
-        // Check if the value is even
-        if (val % 2 == 0) {
-            count += 1;
+        let sum = 0;
+        for (let i = 0; i < val; i++) {
+            sum += i;
         }
-    }
+        if (sum % 2 == 0) {
+            count++;
+        }
+    }   
 
     return count;
 }
@@ -56,7 +59,13 @@ function filter_2(sharedBuffer, resultBuffer, indexStart, indexEnd, outputStart)
 
     for (let i = indexStart; i < indexEnd; i++) {
         val = Atomics.load(array, i);
-        if (val % 2 == 0) {
+
+        let sum = 0;
+        for (let i = 0; i < val; i++) {
+            sum += i;
+        }
+
+        if (sum % 2 == 0) {
             Atomics.exchange(resultArray, pos, val);
 
             pos += 1;

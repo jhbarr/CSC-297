@@ -13,8 +13,20 @@ for (let i = 0; i < arr_len; i++)
 }
 console.log("Initial array:", sharedArray);
 
+
+/*
+* runWorker() -> This function instantiates a worker object, passing it the provided worker information
+* 
+* INPUTS 
+*   - sharedData (SharedArrayBuffer) -> This is the memory buffer that will hold the input array
+*   - indexStart (int) -> The start of the sub array that the worker should work on
+*   - indexStart (int) -> The end of the sub array that the worker should work on
+*   - predicate (String) -> The function that the worker thread should execute
+*/
 function runWorker(sharedData, indexStart, indexEnd, predicate)
 {
+    // Create an object to pass to the worker thread
+    // This will contain all of the information that the thread needs to execute
     const dataForWorker ={
         sharedBuffer: sharedData,
         indexStart: indexStart,
@@ -24,9 +36,10 @@ function runWorker(sharedData, indexStart, indexEnd, predicate)
 
     return new Promise((resolve, reject) => {
         const worker = new Worker('./map_worker.js', { workerData: dataForWorker });
-
+        
+        // Wait for worker to finish
         worker.on('message', (msg) => {
-            console.log(msg);
+            //console.log(msg);
             resolve();
         });    
         worker.on('error', reject);
