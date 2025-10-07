@@ -22,6 +22,8 @@ console.log("Initial array:", sharedArray);
 *   - indexStart (int) -> The start of the sub array that the worker should work on
 *   - indexStart (int) -> The end of the sub array that the worker should work on
 *   - predicate (String) -> The function that the worker thread should execute
+* OUTPUTS 
+*   - (Promise) -> A worker applying map the to indicated section
 */
 function runWorker(sharedData, indexStart, indexEnd, predicate)
 {
@@ -50,6 +52,17 @@ function runWorker(sharedData, indexStart, indexEnd, predicate)
     });
 }
 
+
+/*
+* run() -> This function executes the main map code by first splitting the array into equally sized chunks,
+*   It then creates workers for ech section and wait for them all to complete
+* 
+* INPUTS
+*   - n_workers (int) -> The number of worker threads to be used
+*  
+* OUTPUT
+*   None
+*/
 async function run(n_workers)
 {
     // Split the array into equal chunks
