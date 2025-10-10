@@ -1,11 +1,25 @@
 // Get the parent port and data from the main file
 const { parentPort, workerData } = require('worker_threads');
 
-const {sharedBuffer, indexStart, indexEnd, predicate} = workerData;
+const {sharedBuffer, indexStart, indexEnd} = workerData;
 
-// Wrap the shared buffer in the integer array
-const array = new Int32Array(sharedBuffer);
-
+/*
+* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns that number
+* 
+* INPUTS
+*   - x (int) -> The number to be summed to
+* 
+* OUTPUTS
+*   - bool -> Whether the resulting number is even or not
+*/
+function predicate_func(x)
+{
+    let sum = 0;
+    for (let i = 0; i <= x; i++) {
+        sum += 1;
+    }
+    return sum
+}
 
 /*
 * map() -> This executes the first step of the filtration process. The worker goes through its index section and counts how
@@ -16,26 +30,23 @@ const array = new Int32Array(sharedBuffer);
 *   - indexStart (int) -> The index that the worker should start looking at in the input array
 *   - indexEnd (int) -> The index that the worker should stop looking
 */
-function map(array, indexStart, indexEnd)
+function map(sharedBuffer, indexStart, indexEnd)
 {
+    // Wrap the shared buffer in the integer array
+    const array = new Int32Array(sharedBuffer);
+
     // Modify part of the array
     for (let i = indexStart; i < indexEnd; i++) {
-        const old_val = Atomics.load(array, i);
-        let sum = 0;
-        for (let c = 0; c < old_val; c++) {
-            sum += c;
-        }
+        const val = Atomics.load(array, i);
+        
+        const map_value = predicate_func(val)
 
-        Atomics.exchange(array, i, sum);
+        Atomics.exchange(array, i, map_value);
     }
 }
 
 
-// Listen for messages from the main thread
-switch (predicate) {
-    case 'map':
-        map(array, indexStart, indexEnd);
-        break;
-}
-
-parentPort.postMessage(`Worker processed indexes ${indexStart}–${indexEnd}`);
+// Run the worker map function
+map(sharedBuffer, indexStart, indexEnd);
+parentPort.postMessage("Done");
+       

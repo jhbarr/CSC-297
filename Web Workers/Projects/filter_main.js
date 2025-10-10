@@ -1,5 +1,6 @@
 // Get the worker module
 const { Worker } = require('worker_threads');
+const fs = require("fs");
 
 /*
 * runWorker() -> This function instantiates a worker object, passing it the provided worker information
@@ -84,7 +85,7 @@ function create_workers(sharedBuffer, resultBuffer, indexArray, n_workers, arr_l
 }
 
 /*
-* run() -> This function executes the main filter code by first creating worker threads to assess how long the filtered array will be
+* parallel_filter() -> This function executes the main filter code by first creating worker threads to assess how long the filtered array will be
 *   It then creates another batch of threads to create the new filtered array
 * 
 * INPUTS
@@ -94,7 +95,7 @@ function create_workers(sharedBuffer, resultBuffer, indexArray, n_workers, arr_l
 * OUTPUT
 *   None
 */
-async function run(n_workers, arr_len)
+async function parallel_filter(n_workers, arr_len)
 {
     // Create a shared memory buffer that will be passed to each of the worker threads
     // Wrap an Int32Array around the buffer so that the memory can be more easily modified
@@ -106,7 +107,9 @@ async function run(n_workers, arr_len)
     {
         sharedArray[i-1] = i;
     }
-    console.log("Initial array:", sharedArray);
+
+    // Get the start time
+    const start = performance.now()
 
     // Split the array into equal chunks
     // So that each thread will execute on similar sized chunks of indices
@@ -134,9 +137,148 @@ async function run(n_workers, arr_len)
 
     // Wait for all of the workers to finish to continue execution
     await Promise.all(workers);
+
+    // Get the end time and total time
+    const end = performance.now();
+    const totalTime = (end - start) / 1000;
     
     const finalArray = new Int32Array(resultBuffer);
-    console.log(finalArray);
+    return [finalArray, totalTime];
 }
 
-run(4, 30);
+
+/*
+* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
+* 
+* INPUTS
+*   - x (int) -> The number to be summed to
+* 
+* OUTPUTS
+*   - bool -> Whether the resulting number is even or not
+*/
+function predicate_func(x)
+{
+    let sum = 0;
+    for (let i = 0; i < x; i++) {
+        sum += i;
+    }
+    return sum % 2 == 0;
+}
+
+/*
+* serial_filter() -> This function performs the filter function serially
+* 
+* INPUT 
+*   - arr_len (int) -> The length of the array to be filtered
+* 
+* OUTPUT
+*   - result_array (Int32Array) -> The resultant array after filtration
+*/
+function serial_filter(arr_len)
+{
+    const array = new Array(arr_len)
+    const finalArray = [];
+
+    // Instantiate the values in the shared array
+    for (let i = 1; i <= arr_len; i++) 
+    {
+        array[i-1] = i;
+    }
+
+    // Get the current time
+    const start = performance.now();
+
+    // Go through each element in the array and add it to the final array
+    // if the value passes the predicate function
+    for (let j = 0; j < arr_len; j++) {
+        if (predicate_func(array[j]))
+        {
+            finalArray.push(array[j]);
+        }
+    }
+
+    // Get the end time and total time
+    const end = performance.now()
+    const totalTime = (end - start) / 1000;
+
+    // Return the resultant array
+    return [finalArray, totalTime]
+}
+
+
+/*
+* runTrials() -> This function runs three timing trials for each thread count from 1-8 to see how the long it takes the parallel function to run 
+* compared to the serial function. It then packages this data into an object that can be exported to a CSV file
+* 
+* INPUTS
+*   - arr_len (int) -> The length of the array that the functions will be performed on
+* 
+* OUTPUTS
+*   - data (Array) -> An array of objects that containts the times for each thread count trial from the serial and paralle functions
+*/
+async function runTrials(arr_len)
+{
+    // Create an array to hold all of the trial results
+    const data = [];
+
+    for (let n_workers = 1; n_workers < 9; n_workers++){
+        console.log("Thread Count =", n_workers);
+
+        for (let trial = 1; trial < 4; trial++){
+            const parallel_results = await parallel_filter(n_workers, arr_len);
+            const serial_results = serial_filter(arr_len);
+
+            const parallel_array = Array.from(parallel_results[0])
+            const serial_array = serial_results[0]
+
+            const parallel_time = parallel_results[1];
+            const serial_time = serial_results[1];
+
+            console.log("Parallel Time:", parallel_time);
+            console.log("Serial Time:", serial_time);
+
+            console.assert(JSON.stringify(parallel_array) === JSON.stringify(serial_array), "The two arrays are not equal");
+
+            object = {
+                "Thread Count": n_workers,
+                "Trial": trial,
+                "Serial Time": serial_time,
+                "Parallel Time": parallel_time,
+                "Array Size": arr_len
+            }
+
+            data.push(object);
+        }
+
+        console.log("")
+    }
+
+    // Return the final data
+    return data
+}
+
+
+// Convert array of objects to CSV
+function toCSV(data) {
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+    headers.join(","), // header row
+    ...data.map(row => headers.map(header => JSON.stringify(row[header] ?? "")).join(","))
+    ];
+    return csvRows.join("\n");
+}
+
+// Function to convert data to CSV and trigger download
+async function exportToCSV(filename = "../Data/filter_data.csv") 
+{
+    // Run the trials
+    const data = await runTrials(100000);
+
+    const csvString = toCSV(data);
+    fs.writeFileSync(filename, csvString, "utf8");
+    console.log(`✅ CSV file saved as ${filename}`);
+}
+
+
+// Export the data to the CSV
+exportToCSV()

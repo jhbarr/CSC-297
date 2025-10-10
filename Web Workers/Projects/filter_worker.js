@@ -5,6 +5,24 @@ const { parentPort, workerData } = require('worker_threads');
 const {sharedBuffer, resultBuffer, indexStart, indexEnd, outputStart, predicate} = workerData;
 
 /*
+* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
+* 
+* INPUTS
+*   - x (int) -> The number to be summed to
+* 
+* OUTPUTS
+*   - bool -> Whether the resulting number is even or not
+*/
+function predicate_func(x)
+{
+    let sum = 0;
+    for (let i = 0; i < x; i++) {
+        sum += i;
+    }
+    return sum % 2 == 0;
+}
+
+/*
 * filter_1() -> This executes the first step of the filtration process. The worker goes through its index section and counts how
 *   many times the filtration function returns true
 * 
@@ -25,11 +43,7 @@ function filter_1(arrayBuffer, indexStart, indexEnd)
     for (let i = indexStart; i < indexEnd; i++) {
         val = Atomics.load(array, i);
 
-        let sum = 0;
-        for (let i = 0; i < val; i++) {
-            sum += i;
-        }
-        if (sum % 2 == 0) {
+        if (predicate_func(val)){
             count++;
         }
     }   
@@ -60,12 +74,7 @@ function filter_2(sharedBuffer, resultBuffer, indexStart, indexEnd, outputStart)
     for (let i = indexStart; i < indexEnd; i++) {
         val = Atomics.load(array, i);
 
-        let sum = 0;
-        for (let i = 0; i < val; i++) {
-            sum += i;
-        }
-
-        if (sum % 2 == 0) {
+        if (predicate_func(val)){
             Atomics.exchange(resultArray, pos, val);
 
             pos += 1;
