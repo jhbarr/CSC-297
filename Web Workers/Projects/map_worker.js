@@ -1,7 +1,7 @@
 // Get the parent port and data from the main file
 const { parentPort, workerData } = require('worker_threads');
 
-const {sharedBuffer, indexStart, indexEnd} = workerData;
+const {sharedBuffer, indexChunks} = workerData;
 
 /*
 * predicate_func() -> This function takes the sum of all numbers up to the given input and then returns that number
@@ -30,23 +30,28 @@ function predicate_func(x)
 *   - indexStart (int) -> The index that the worker should start looking at in the input array
 *   - indexEnd (int) -> The index that the worker should stop looking
 */
-function map(sharedBuffer, indexStart, indexEnd)
+function map(sharedBuffer, indexChunks)
 {
     // Wrap the shared buffer in the integer array
     const array = new Int32Array(sharedBuffer);
 
     // Modify part of the array
-    for (let i = indexStart; i < indexEnd; i++) {
-        const val = Atomics.load(array, i);
-        
-        const map_value = predicate_func(val)
+    for (let i = 0; i < indexChunks.length; i++){
+        const indexStart = indexChunks[i][0];
+        const indexEnd = indexChunks[i][1];
 
-        Atomics.exchange(array, i, map_value);
+        for (let j = indexStart; j < indexEnd; j++) {
+            const val = Atomics.load(array, j);
+            
+            const map_value = predicate_func(val)
+
+            Atomics.exchange(array, j, map_value);
+        }
     }
 }
 
 
 // Run the worker map function
-map(sharedBuffer, indexStart, indexEnd);
+map(sharedBuffer, indexChunks);
 parentPort.postMessage("Done");
        

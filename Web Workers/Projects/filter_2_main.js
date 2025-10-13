@@ -6,28 +6,26 @@ const fs = require("fs");
 * runWorker() -> This function instantiates a worker object, passing it the provided worker information
 * 
 * INPUTS 
-*   - sharedData (SharedArrayBuffer) -> This is the memory buffer that will hold the input array
-*   - indexStart (int) -> The start of the sub array that the worker should work on
-*   - indexStart (int) -> The end of the sub array that the worker should work on
-*   - predicate (String) -> The function that the worker thread should execute
-* OUTPUTS 
-*   - (Promise) -> A worker applying map the to indicated section
+*   - sharedBuffer (SharedArrayBuffer) -> This is the memory buffer that will hold the array that is to be filtered
+*   - resultBuffer (SharedArrayBuffer) -> The memory buffer that will hold the result array
+*   - indexStart (int) -> The index that the worker thread should start executing at with respect to the original array
+*   - indexEnd (int) -> The index that the worker thread should stop executing at
 */
-function runWorker(sharedData, indexChunks)
+function runWorker(sharedBuffer, resultBuffer, indexChunks)
 {
     // Create an object to pass to the worker thread
     // This will contain all of the information that the thread needs to execute
-    const dataForWorker ={
-        sharedBuffer: sharedData,
+    const dataForWorker = {
+        sharedBuffer: sharedBuffer,
+        resultBuffer: resultBuffer,
         indexChunks: indexChunks
     };
 
     return new Promise((resolve, reject) => {
-        const worker = new Worker('./map_worker.js', { workerData: dataForWorker });
-        
-        // Wait for worker to finish
+        const worker = new Worker('./filter_2_worker.js', { workerData: dataForWorker });
+
+        // Get the message back from the thread
         worker.on('message', (msg) => {
-            //console.log(msg);
             resolve();
         });    
         worker.on('error', reject);
@@ -38,26 +36,32 @@ function runWorker(sharedData, indexChunks)
     });
 }
 
-
 /*
-* parallel_map() -> This function executes the main map code 
+* parallel_filter() -> This function executes the main filter code by first creating worker threads to assess how long the filtered array will be
+*   It then creates another batch of threads to create the new filtered array
 * 
 * INPUTS
 *   - n_workers (int) -> The number of worker threads to be used
 *   - arr_len (int) -> The length of the array to be filtered
 *  
 * OUTPUT
-*   [Array, Double] -> This function returns the mapped array plus the time it took to create it
+*   None
 */
-async function parallel_map(n_workers, arr_len, max_chunk)
+async function parallel_filter(n_workers, arr_len, max_chunk)
 {
+    // Create a shared memory buffer that will be passed to each of the worker threads
+    // Wrap an Int32Array around the buffer so that the memory can be more easily modified
     const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
     const sharedArray = new Int32Array(sharedBuffer); // A typed 32-bit shared integer array buffer
 
+    // Create a shared memory buffer to hold the result of the predicate filter on each of the array elements
+    const filterBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
+    const filterArray = new Int32Array(filterBuffer);
+
     // Instantiate the values in the shared array
-    for (let i = 0; i < arr_len; i++) 
+    for (let i = 1; i <= arr_len; i++) 
     {
-        sharedArray[i] = i;
+        sharedArray[i-1] = i;
     }
 
     // Get the start time
@@ -78,29 +82,38 @@ async function parallel_map(n_workers, arr_len, max_chunk)
             worker_chunks[i % n_workers].push(range);
     });
 
-
     // Instantiate the worker threads
     const workers = [];
     for (let i = 0; i < n_workers; i++) 
     {
         // console.log(worker_chunks[i]);
-        workers.push(runWorker(sharedBuffer, worker_chunks[i]));
+        workers.push(runWorker(sharedBuffer, filterBuffer, worker_chunks[i]));
     }
 
-
-    // Wait for all workers
+    // Wait for all of the worker threads to finish their processes
     await Promise.all(workers);
 
-    // Get the end time and total time
+    // Go through each of the values in the results array
+    // If an element in the result array is true, add the element with the corresponding index from the original array to the final array
+    const finalArray = [];
+    for (let i = 0; i < arr_len; i++) 
+    {
+        if (filterArray[i])
+        {
+            finalArray.push(sharedArray[i]);
+        }
+    }
+
+    // Get the total time of program execution
     const end = performance.now();
     const totalTime = (end - start) / 1000;
 
-    return [Array.from(sharedArray), totalTime];
+    return [Array.from(finalArray), totalTime];
 }
 
 
 /*
-* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns that number
+* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
 * 
 * INPUTS
 *   - x (int) -> The number to be summed to
@@ -111,46 +124,65 @@ async function parallel_map(n_workers, arr_len, max_chunk)
 function predicate_func(x)
 {
     let sum = 0;
-    for (let i = 0; i <= x; i++) {
+    for (let i = 0; i < x; i++) {
         sum += 1;
     }
-    return sum
+    return sum % 2 == 0;
 }
 
 /*
-* serial_map() -> This function goes through the input array and execute the map function on each of the elements in the array in serial
+* serial_filter() -> This function performs the filter function serially
 * 
-* INPUTS
+* INPUT 
 *   - arr_len (int) -> The length of the array to be filtered
-*  
+* 
 * OUTPUT
-*   [Array, Double] -> This function returns the mapped array plus the time it took to create it
+*   - result_array (Int32Array) -> The resultant array after filtration
 */
-function serial_map(arr_len)
+function serial_filter(arr_len)
 {
     const array = new Array(arr_len)
+    const filterArray = new Array(arr_len);
+    const finalArray = [];
 
     // Instantiate the values in the shared array
+    for (let i = 1; i <= arr_len; i++) 
+    {
+        array[i-1] = i;
+    }
+
+    // Get the current time
+    const start = performance.now();
+
+    // Go through the array and set each index to either 0 or 1 in the filter array 
+    // depending on the predicate return of the element from the original array
+    for (let i = 0; i < arr_len; i++)
+    {
+        if (predicate_func(array[i]))
+        {
+            filterArray[i] = 1;
+        }
+        else
+        {
+            filterArray[i] = 0;
+        }
+    }
+
+    // Then go through the filter array and add the element from the corresponding index to the final array
     for (let i = 0; i < arr_len; i++) 
     {
-        array[i] = i;
+        if (filterArray[i])
+        {
+            finalArray.push(array[i]);
+        }
     }
 
-    // Get the start time
-    const start = performance.now()
-    
-    // Go through and execute the predicate function on each of the elements
-    for (let i = 0; i < arr_len; i++) {
-        array[i] = predicate_func(i);
-    }
-
-    // Get the end time and total time
+    // Get the total time of program execution
     const end = performance.now();
     const totalTime = (end - start) / 1000;
 
-    return [array, totalTime];
+    return [finalArray, totalTime];
 }
-
 
 /*
 * runTrials() -> This function runs three timing trials for each thread count from 1-8 to see how the long it takes the parallel function to run 
@@ -171,11 +203,11 @@ async function runTrials(arr_len, max_chunk)
         console.log("Thread Count =", n_workers);
 
         for (let trial = 1; trial < 4; trial++){
-            const parallel_results = await parallel_map(n_workers, arr_len, max_chunk);
-            const serial_results = serial_map(arr_len);
+            const parallel_results = await parallel_filter(n_workers, arr_len, max_chunk);
+            const serial_results = serial_filter(arr_len);
 
             const parallel_array = parallel_results[0];
-            const serial_array = serial_results[0]
+            const serial_array = serial_results[0];
 
             const parallel_time = parallel_results[1];
             const serial_time = serial_results[1];
@@ -203,7 +235,6 @@ async function runTrials(arr_len, max_chunk)
     return data
 }
 
-
 // Convert array of objects to CSV
 function toCSV(data) {
     const headers = Object.keys(data[0]);
@@ -215,7 +246,7 @@ function toCSV(data) {
 }
 
 // Function to convert data to CSV and trigger download
-async function executeProgram(filename = "../Data/map_data.csv") 
+async function executeProgram(filename = "../Data/filter_2_data.csv") 
 {
     // Run the trials
     const data = await runTrials(100000, 100);
@@ -227,4 +258,12 @@ async function executeProgram(filename = "../Data/map_data.csv")
 
 
 // Export the data to the CSV
-executeProgram();
+executeProgram()
+
+// async function func(n_workers, arr_len, max_chunk)
+// {
+//     const res = await parallel_filter(n_workers, arr_len, max_chunk);
+//     console.log(res);
+// }
+
+// func(4, 20, 2);
