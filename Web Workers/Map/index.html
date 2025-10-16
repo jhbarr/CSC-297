@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Worker Demo (Separate Files)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.5em 1em;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h2>Web Worker Example</h2>
+  <p>This demo sends a number to a background worker, which doubles it and returns the result.</p>
+
+  <input type="number" id="numberInput" value="10">
+  <input type="number" id="workerInput" value="1">
+  <input type="number" id="chunkInput" value="1">
+  <button id="sendButton">Send to Worker</button>
+
+  <p id="output"></p>
+
+  <!-- Link to main JavaScript -->
+  <script src="map_main.js"></script>
+</body>
+</html>
