@@ -209,7 +209,7 @@ function toCSV(data) {
 }
 
 // Function to convert data to CSV and trigger download
-async function executeProgram(filename = "../Data/filter_2_data.csv") 
+async function executeProgram(filename = "../Data/reduce_data.csv") 
 {
     // Run the trials
     const data = await runTrials(100000, 1000);
