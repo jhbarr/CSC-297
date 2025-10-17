@@ -55,7 +55,7 @@ async function parallel_reduce(n_workers, arr_len, max_chunk)
 
     // We'll use the shared buffer to hold the original array values; workers will return partial numeric sums
 
-    // Instantiate the values in the shared array (1..arr_len)
+    // Instantiate the values in the shared array
     for (let i = 1; i <= arr_len; i++) {
         sharedArray[i-1] = i;
     }
@@ -99,7 +99,7 @@ async function parallel_reduce(n_workers, arr_len, max_chunk)
 
 
 
-// Simple reduction function (weighted sum with factorial) - keep for serial version if custom logic is desired
+// Reduction function (sum with factorial)
 function factorial(n) {
     if (n === 0 || n === 1) return 1;
     let result = 1;
@@ -109,8 +109,8 @@ function factorial(n) {
     return result;
 }
 
-function reduce_func(x, y, index) {
-    return x + factorial(y) * index;
+function reduce_func(x, y) {
+    return x + factorial(y);
 }
 
 /*
@@ -133,9 +133,9 @@ function serial_reduce(arr_len)
     const start = performance.now();
 
     let result = 0;
-    // Perform numeric reduction (sum) by accumulating
+    // Perform numeric reduction by accumulating
     for (let i = 0; i < array.length; i++) {
-        result = reduce_func(result, array[i], i);
+        result = reduce_func(result, array[i]);
     }
 
     // Get the total time of program execution

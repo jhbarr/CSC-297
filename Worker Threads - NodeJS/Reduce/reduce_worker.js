@@ -5,7 +5,7 @@ const { parentPort, workerData } = require('worker_threads');
 const { sharedBuffer, indexChunks } = workerData;
 
 
-// Worker function: weighted sum combiner with factorial
+// Worker function: sum with factorial
 function factorial(n) {
     if (n === 0 || n === 1) return 1;
     let result = 1;
@@ -15,8 +15,8 @@ function factorial(n) {
     return result;
 }
 
-function reduce_func(x, y, index) {
-    return x + factorial(y) * index;
+function reduce_func(x, y) {
+    return x + factorial(y);
 }
 
 // Worker reduction function: sum assigned chunks and return numeric partial sum
@@ -28,7 +28,7 @@ function reduceChunks(arrayBuffer, indexChunks) {
         const indexEnd = indexChunks[j][1];
         for (let i = indexStart; i < indexEnd; i++) {
             const val = array[i];
-            partialSum = reduce_func(partialSum, val, i);
+            partialSum = reduce_func(partialSum, val);
         }
     }
     return partialSum;
