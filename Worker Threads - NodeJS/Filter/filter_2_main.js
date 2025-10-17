@@ -259,11 +259,3 @@ async function executeProgram(filename = "../Data/filter_2_data.csv")
 
 // Export the data to the CSV
 executeProgram()
-
-// async function func(n_workers, arr_len, max_chunk)
-// {
-//     const res = await parallel_filter(n_workers, arr_len, max_chunk);
-//     console.log(res);
-// }
-
-// func(4, 20, 2);
