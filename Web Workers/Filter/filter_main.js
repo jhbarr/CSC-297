@@ -13,6 +13,7 @@ function create_workers(worker, data) {
             }
         }
         worker.onerror = (error) => {
+            console.log("Worker error:", error);
             reject(error);
         };
 
@@ -25,6 +26,10 @@ async function run_workers(n_workers, max_chunk, arr_len)
 {
     const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
     const sharedArray = new Int32Array(sharedBuffer);
+
+    // Create a shared memory buffer to hold the result of the predicate filter on each of the array elements
+    const filterBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
+    const filterArray = new Int32Array(filterBuffer);
 
      // Instantiate the values in the shared array
     for (let i = 0; i < arr_len; i++) 
@@ -54,7 +59,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
     const workers = [];
     for (let i = 0; i < n_workers; i++)
     {
-        workers.push(new Worker('map_worker.js'));
+        workers.push(new Worker('filter_worker.js'));
     }
 
     // Collect all of the promises for the workers
@@ -62,6 +67,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
         // Create a data object to pass to the workers
         const worker_data = {
             sharedBuffer: sharedBuffer,
+            filterBuffer: filterBuffer,
             indexChunks: worker_chunks[index]
         }
 
@@ -69,19 +75,32 @@ async function run_workers(n_workers, max_chunk, arr_len)
     });
 
     // Wait for all of the promises to resolve
-    return Promise.all(workerPromises)
+    await Promise.all(workerPromises)
         .then(() => {
-            // All workers have finished successfully
-            // Get the end time and total time
-            const end = performance.now();
-            const totalTime = (end - start) / 1000;
-
-            return [sharedArray, totalTime];
+            console.log("All worker promises resolved");
         })
         .catch((error) => {
             // One or more workers encountered an error
-            console.error('One or more workers failed:', error);
-        });
+            console.error('One or more workers failed:');
+            console.log("This is the error:", error)
+    });
+    
+    // Go through each of the values in the results array
+    // If an element in the result array is true, add the element with the corresponding index from the original array to the final array
+    const finalArray = [];
+    for (let i = 0; i < arr_len; i++) 
+    {
+        if (filterArray[i])
+        {
+            finalArray.push(sharedArray[i]);
+        }
+    }
+
+    // Get the total time of program execution
+    const end = performance.now();
+    const totalTime = (end - start) / 1000;
+
+    return [finalArray, totalTime];
 }
 
 
