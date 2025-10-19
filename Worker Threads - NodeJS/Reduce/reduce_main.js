@@ -6,10 +6,8 @@ const fs = require("fs");
 * runWorker() -> This function instantiates a worker object, passing it the provided worker information
 * 
 * INPUTS 
-*   - sharedBuffer (SharedArrayBuffer) -> This is the memory buffer that will hold the array that is to be filtered
-*   - resultBuffer (SharedArrayBuffer) -> The memory buffer that will hold the result array
-*   - indexStart (int) -> The index that the worker thread should start executing at with respect to the original array
-*   - indexEnd (int) -> The index that the worker thread should stop executing at
+*   - sharedBuffer (SharedArrayBuffer) -> The memory buffer that will hold the array that is to be filtered
+*   - indexChunks (Array) -> A pair containing the start and end index in sharedBuffer for the current worker
 */
 function runWorker(sharedBuffer, indexChunks)
 {
@@ -42,7 +40,8 @@ function runWorker(sharedBuffer, indexChunks)
 * INPUTS
 *   - n_workers (int) -> The number of worker threads to be used
 *   - arr_len (int) -> The length of the array to be filtered
-*  
+*   - max_chunk -> maximum chunk size for a single thread at once
+*
 * OUTPUT
 *   None
 */
@@ -87,7 +86,7 @@ async function parallel_reduce(n_workers, arr_len, max_chunk)
     // Wait for all workers and gather partial results
     const partials = await Promise.all(workers);
 
-    // Combine partial sums into final sum
+    // Combine partial sums into final sum (Note: JS reduce function is single-threaded)
     const finalSum = partials.reduce((acc, val) => acc + (Number(val) || 0), 0);
 
     // Get the total time of program execution
@@ -97,20 +96,18 @@ async function parallel_reduce(n_workers, arr_len, max_chunk)
     return [finalSum, totalTime];
 }
 
-
-
-// Reduction function (sum with factorial)
-function factorial(n) {
-    if (n === 0 || n === 1) return 1;
-    let result = 1;
-    for (let i = 2; i <= n; i++) {
-        result *= i;
+// Sums intergers up to n
+function summation(n) {
+    let result = 0;
+    for (let i = 1; i <= n; i++) {
+        result += i;
     }
     return result;
 }
 
+// Reduction function (addition and summation)
 function reduce_func(x, y) {
-    return x + factorial(y);
+    return x + summation(y);
 }
 
 /*
@@ -151,6 +148,7 @@ function serial_reduce(arr_len)
 * 
 * INPUTS
 *   - arr_len (int) -> The length of the array that the functions will be performed on
+*   - max_chunk -> maximum chunk size for a single thread at once
 * 
 * OUTPUTS
 *   - data (Array) -> An array of objects that containts the times for each thread count trial from the serial and paralle functions
@@ -174,6 +172,8 @@ async function runTrials(arr_len, max_chunk)
             const serial_time = serial_results[1];
 
             console.assert((serial_sum == parallel_sum), "The two sums are not equal");
+            console.log("Parallel result:", parallel_sum);
+            console.log("Serial result:", serial_sum);
             console.log("Parallel Time:", parallel_time);
             console.log("Serial Time:", serial_time);
 
@@ -208,7 +208,7 @@ function toCSV(data) {
     return csvRows.join("\n");
 }
 
-// Function to convert data to CSV and trigger download
+// Convert data to CSV
 async function executeProgram(filename = "../Data/reduce_data.csv") 
 {
     // Run the trials
@@ -219,7 +219,5 @@ async function executeProgram(filename = "../Data/reduce_data.csv")
     console.log(`✅ CSV file saved as ${filename}`);
 }
 
-
-// Export the data to the CSV
 executeProgram()
 
