@@ -1,17 +1,17 @@
 
 
-// Worker function: weighted sum combiner with factorial
-function factorial(n) {
-    if (n === 0 || n === 1) return 1;
-    let result = 1;
-    for (let i = 2; i <= n; i++) {
-        result *= i;
+// Sums intergers up to n
+function summation(n) {
+    let result = 0;
+    for (let i = 1; i <= n; i++) {
+        result += i;
     }
     return result;
 }
 
-function reduce_func(x, y, index) {
-    return x + factorial(y) * index;
+// Reduction function (addition and summation)
+function reduce_func(x, y) {
+    return x + summation(y);
 }
 
 // Worker reduction function: sum assigned chunks and return numeric partial sum
