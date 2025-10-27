@@ -184,8 +184,6 @@ async function runTrials(arr_len, max_chunk)
                 "Serial Time": serial_time,
                 "Parallel Time": parallel_time,
                 "Array Size": arr_len,
-                "Serial Sum": serial_sum,
-                "Parallel Sum": parallel_sum
             }
 
             data.push(object);

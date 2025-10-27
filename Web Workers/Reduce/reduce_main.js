@@ -9,7 +9,7 @@ function create_workers(worker, data) {
     return new Promise((resolve, reject) => {
         worker.onmessage = (event) => {
             if (event.data.status === 'done') {
-                resolve('done');
+                resolve(event.data.result);
             }
         }
         worker.onerror = (error) => {
@@ -54,7 +54,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
     const workers = [];
     for (let i = 0; i < n_workers; i++)
     {
-        workers.push(new Worker('map_worker.js'));
+        workers.push(new Worker('reduce_worker.js'));
     }
 
     // Collect all of the promises for the workers
@@ -68,12 +68,15 @@ async function run_workers(n_workers, max_chunk, arr_len)
         return create_workers(worker, worker_data);
     });
 
+
     // Wait for all of the promises to resolve
     const partials = await Promise.all(workerPromises)
         .catch((error) => {
             // One or more workers encountered an error
             console.error('One or more workers failed:', error);
         });
+    
+    console.log(partials)
     
     // Combine partial sums into final sum
     const finalSum = partials.reduce((acc, val) => acc + (Number(val) || 0), 0);
