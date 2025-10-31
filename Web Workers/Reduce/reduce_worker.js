@@ -1,17 +1,17 @@
 
 
-// Sums intergers up to n
-function summation(n) {
-    let result = 0;
-    for (let i = 1; i <= n; i++) {
-        result += i;
+// Worker function: sum with factorial
+function factorial(n) {
+    if (n === 0 || n === 1) return 1;
+    let result = 1;
+    for (let i = 2; i <= n; i++) {
+        result *= i;
     }
     return result;
 }
 
-// Reduction function (addition and summation)
 function reduce_func(x, y) {
-    return x + summation(y);
+    return x + factorial(y);
 }
 
 // Worker reduction function: sum assigned chunks and return numeric partial sum
@@ -30,10 +30,5 @@ onmessage = function(event) {
             partialSum = reduce_func(partialSum, val, i);
         }
     }
-    
-    this.postMessage(partialSum);
+    this.postMessage({ status: "done", result: partialSum});
 }
-
-// // Execute reduction and send numeric partial sum to parent
-// const result = reduceChunks(sharedBuffer, indexChunks);
-// parentPort.postMessage(result);
