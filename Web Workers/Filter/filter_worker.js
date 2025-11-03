@@ -16,27 +16,41 @@ function predicate_func(x)
     return sum % 2 == 0;
 }
 
-onmessage = function (event) {
-    const data = event.data;
-    const sharedBuffer = data.sharedBuffer;
+/*
+* run_filter() -> This function runs map on the given array in the index window specified by the main thread
+* 
+* INPUTS 
+*   - sharedBuffer (SharedArrayBuffer) -> This is the shared memory buffer that contains the elements that must be mapped
+*   - filterBuffer (SharedArrayBuffer) -> This is the shared memofy buffer where the results of the predicate functions are stored
+*   - indexChunk (Array) -> This contains the start and end indices that the worker thread should execute on in the sharedbuffer
+*/
+function run_filter(sharedBuffer, filterBuffer, indexChunk)
+{
+    // Wrap the memory buffers with an array wrapper for easier access and update
     const sharedArray = new Int32Array(sharedBuffer);
-
-    const filterBuffer = data.filterBuffer;
     const filterArray = new Int32Array(filterBuffer);
 
-    const indexChunks = data.indexChunks;
+    const indexStart = indexChunk[0];
+    const indexEnd = indexChunk[1];
 
-    for (let j = 0; j < indexChunks.length; j++){
-        const indexStart = indexChunks[j][0];
-        const indexEnd = indexChunks[j][1];
-
-        for (let i = indexStart; i < indexEnd; i++)
-        {
-            const val = sharedArray[i];
-            filterArray[i] = predicate_func(val);
-        }
+    // Iterate through the index chunk in the array
+    for (let i = indexStart; i < indexEnd; i++)
+    {
+        const val = sharedArray[i];
+        filterArray[i] = predicate_func(val);
     }
-    
-    // Don't forget to post the message
+
+    // Post a completion message to the main thread
+    this.postMessage({ status: 'done'});
+}
+
+
+// Add a listener for messages from the main thread
+onmessage = function (event) {
+    const {sharedBuffer, filterBuffer, indexChunk} = event.data;
+
+    // Run the filtration using the provided data
+    run_filter(sharedBuffer, filterBuffer, indexChunk);
+
     this.postMessage({ status: 'done'});
 };

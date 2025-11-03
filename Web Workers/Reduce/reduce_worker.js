@@ -1,6 +1,3 @@
-
-// TODO: update this function to summation
-
 // Worker function: sum with factorial
 function factorial(n) {
     if (n === 0 || n === 1) return 1;
@@ -16,6 +13,7 @@ function reduce_func(x, y) {
 }
 
 // Worker reduction function: sum assigned chunks and return numeric partial sum
+// TODO - why does this onmessage function work? Why can't we define it as function onmessage(event)
 onmessage = function(event) {
     const data = event.data;
     const arrayBuffer = data.arrayBuffer;
