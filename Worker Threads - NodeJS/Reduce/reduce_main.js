@@ -96,7 +96,7 @@ async function parallel_reduce(n_workers, arr_len, max_chunk)
     return [finalSum, totalTime];
 }
 
-// Sums intergers up to n
+// Sums integers up to n
 function summation(n) {
     let result = 0;
     for (let i = 1; i <= n; i++) {

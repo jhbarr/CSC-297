@@ -1,4 +1,5 @@
 
+// TODO: update this function to summation
 
 // Worker function: sum with factorial
 function factorial(n) {
