@@ -1,29 +1,72 @@
-// Grab DOM elements
-const input = document.getElementById('numberInput');
-const workerInput = document.getElementById('workerInput');
-const chunkInput = document.getElementById('chunkInput');
-const button = document.getElementById('sendButton');
-const output = document.getElementById('output');
+/*
+------ FILTER MAIN ------
+This logic controls the creation of web workers that execute filtration on an array of specified size. 
+-------------------------
+*/
 
-function create_workers(worker, data) {
+/*
+* create_workers() -> This function creates promise objects for each worker thread and then posts the initial data to those thread
+*   It additionally handles what happens when a worker thread finished and "asks" for more indices to work with
+* 
+* INPUTS
+*   - worker (Worker) -> This is the worker object that had been initialized and is ready to be dispatched
+*   - data (Object) -> The data that is to be posted to the worker thread
+*   - indexChunks (Array) -> An array of predetermined index chunks that a worker thread can gain access to once they are done
+* 
+* OUTPUTS
+*   - promise (Promise) -> This function returns a promise object for the worker (as it executes it's code asynchronously)
+*/
+function create_workers(worker, data, indexChunks) {
+    // Create a promise object for the worker
     return new Promise((resolve, reject) => {
         worker.onmessage = (event) => {
-            if (event.data.status === 'done') {
+            // Check if there are more index chunks to be executed on
+            if (indexChunks.length != 0) {
+                const new_chunk = indexChunks.shift();
+                data.indexChunk = new_chunk;
+                worker.postMessage(data);
+            }
+            // Otherwise, we want to resolve this worker object
+            else 
+            {
                 resolve('done');
             }
         }
-        worker.onerror = (error) => {
-            console.log("Worker error:", error);
+
+        // Handle the case that the worker responds with an error
+        worker.onerror = (e) => {
+            console.error("Worker error:", e.message, e.filename, e.lineno);
             reject(error);
         };
 
         // Post the message to the worker
-        worker.postMessage(data);
+        // (if there are index chunks that have yet to be executed on)
+        if (indexChunks.length != 0) {
+            const new_chunk = indexChunks.shift();
+            data.indexChunk = new_chunk;
+            worker.postMessage(data);
+        }
     });
 }
 
-async function run_workers(n_workers, max_chunk, arr_len)
+
+/*
+* initialize_workers() -> This function initializes the array that will be filtered as well as creates 
+*   the workers and their promise objects
+* 
+* INPUTS 
+*   - n_workers (int) -> The number of workers that should be created to filter the array
+*   - max_chunk (int) -> The size of the index chunks that each thread will execute on at any give time
+*   - arr_len (int) -> The length of the array that is to be filtered
+* 
+* OUTPUTS
+*   - workerPromises (Array) -> An array of promise objects that are associated with each worker
+*   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
+*   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered
+*/
+function initialize_workers(n_workers, max_chunk, arr_len)
 {
+    // Create a shared memory buffer to hold the array that is to be filtered
     const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
     const sharedArray = new Int32Array(sharedBuffer);
 
@@ -41,25 +84,21 @@ async function run_workers(n_workers, max_chunk, arr_len)
     const start = performance.now()
 
     // Create the index chunks of specified size
-    const chunks = [];
+    const indexChunks = [];
     for (let i = 0; i < arr_len; i += max_chunk)
     {
         const start = i;
         const end = Math.min(i + max_chunk, arr_len);
 
-        chunks.push([start, end]);
+        indexChunks.push([start, end]);
     }
-
-    const worker_chunks = Array.from({ length: n_workers }, () => []);
-        chunks.forEach((range, i) => {
-            worker_chunks[i % n_workers].push(range);
-    });
 
     // Create the worker objects
     const workers = [];
     for (let i = 0; i < n_workers; i++)
     {
-        workers.push(new Worker('filter_worker.js'));
+        const worker = new Worker('./Filter/filter_worker.js');
+        workers.push(worker);
     }
 
     // Collect all of the promises for the workers
@@ -68,23 +107,41 @@ async function run_workers(n_workers, max_chunk, arr_len)
         const worker_data = {
             sharedBuffer: sharedBuffer,
             filterBuffer: filterBuffer,
-            indexChunks: worker_chunks[index]
         }
 
-        return create_workers(worker, worker_data);
+        // Create the workers
+        return create_workers(worker, worker_data, indexChunks);
     });
 
+    // Return the necessary information 
+    return [workerPromises, filterArray, sharedArray]
+}
+
+
+/*
+* async run_workers() -> This function waits for each worker promise to finish that then creates the final filtered array
+* 
+* INPUTS 
+*   - workerPromises (Array) -> An array of promise objects that are associated with each worker
+*   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
+*   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered 
+* 
+* OUTPUTS
+*   - finalArray (Array) -> The final filtered array
+*/
+async function run_workers(workerPromises, filterArray, sharedArray, arr_len)
+{
     // Wait for all of the promises to resolve
     await Promise.all(workerPromises)
         .then(() => {
-            console.log("All worker promises resolved");
+            // console.log("All worker promises resolved");
         })
         .catch((error) => {
             // One or more workers encountered an error
-            console.error('One or more workers failed:');
-            console.log("This is the error:", error)
+            console.error('One or more workers failed');
+            // console.log("This is the error:", error)
     });
-    
+
     // Go through each of the values in the results array
     // If an element in the result array is true, add the element with the corresponding index from the original array to the final array
     const finalArray = [];
@@ -96,28 +153,72 @@ async function run_workers(n_workers, max_chunk, arr_len)
         }
     }
 
-    // Get the total time of program execution
+    // Return the filtered array
+    return finalArray
+}
+
+
+/*
+* async run_parallel_filter() -> This function executes the parallel filter process and returns the filtered array and the time
+*   that it took for the computer to execute that filtration. 
+* 
+* INPUTS
+*   - arr_len (int) -> The length of the array that should be created
+*   - n_workers (int) -> The number of web worker threads that should execute the function
+*   - max_chunk (int) -> The size of the index chunks that should be given to the workers
+*   
+* OUTPUTS
+*   - arr (Array) -> The final array after the function executing
+*   - totalTime (float) -> The amount of time that it took to execute the function
+*/
+export async function run_parallel_filter(arr_len, n_workers, max_chunk)
+{
+    // Get the start time
+    const start = performance.now()
+
+    // Get the necessary information from the initialization of the worker threads
+    const [workerPromises, filterArray, sharedArray] = initialize_workers(n_workers, max_chunk, arr_len); 
+
+    // Attempt to run the workers and display the final filtered array
+    let arr;
+    try {
+        arr = await run_workers(workerPromises, filterArray, sharedArray, arr_len); // wait for promise to resolve
+    } catch (err) {
+        console.log('Error running workers ' + err);
+    }
+
+    // Get the total elapsed time
     const end = performance.now();
     const totalTime = (end - start) / 1000;
+    timeOutput.textContent = `Elapsed Time: ${totalTime}`;
 
-    return [finalArray, totalTime];
+    return [arr, totalTime]
 }
 
 
 // Send message to worker when button clicked
-button.addEventListener('click', async () => {
-    const arr_len = parseInt(input.value);
-    const n_workers = parseInt(workerInput.value);
-    const max_chunk = parseInt(chunkInput.value);
+// button.addEventListener('click', async () => {
+    // // Get the necessary information from the HTML page
+    // const arr_len = parseInt(input.value);
+    // const n_workers = parseInt(workerInput.value);
+    // const max_chunk = parseInt(chunkInput.value);
 
-    try {
-        const results = await run_workers(n_workers, max_chunk, arr_len); // wait for promise to resolve
-        const arr = results[0];
-        const time = results[1];
+    // // Get the start time
+    // const start = performance.now()
 
-        console.log('Final array:', arr);
-        output.textContent = `Mapped Array: ${arr}\nTime: ${time}`;
-    } catch (err) {
-        output.textContent = 'Error running workers: ' + err.message;
-    }
-});
+    // // Get the necessary information from the initialization of the worker threads
+    // const [workerPromises, filterArray, sharedArray] = initialize_workers(n_workers, max_chunk, arr_len); 
+
+    // // Attempt to run the workers and display the final filtered array
+    // try {
+    //     const arr = await run_workers(workerPromises, filterArray, sharedArray, arr_len); // wait for promise to resolve
+    //     output.textContent = `Mapped Array: ${arr}`;
+    // } catch (err) {
+    //     output.textContent = 'Error running workers ' + err;
+    // }
+
+    // // Get the total elapsed time
+    // const end = performance.now();
+    // const totalTime = (end - start) / 1000;
+    // timeOutput.textContent = `Elapsed Time: ${totalTime}`;
+// });

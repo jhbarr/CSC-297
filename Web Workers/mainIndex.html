@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Filter Web Workers</title>
+  <title>Parallelized Web Workers</title>
   <style>
     body {
       font-family: sans-serif;
@@ -16,17 +16,23 @@
   </style>
 </head>
 <body>
-  <h2>Filter Function</h2>
-  <p>This is the web worker example running the parallel filter function</p>
+  <h2>Execute different parallel functions on an array</h2>
+  <p>On this page you can execute the three main array functions using parallelized web workers</p>
 
   <input type="number" id="numberInput" placeholder="Array length">
   <input type="number" id="workerInput" placeholder="Number of workers">
   <input type="number" id="chunkInput" placeholder="Index chunk length">
-  <button id="sendButton">Send to Worker</button>
+    <br/>
+  <button id="filterButton">Execute Filter</button>
+    <br/>
+  <button id="mapButton">Execute Map</button>
+    <br/>
+  <button id="reduceButton">Execute Reduce</button>
 
   <p id="output"></p>
+  <p id="timeOutput"></p>
 
   <!-- Link to main JavaScript -->
-  <script src="filter_main.js"></script>
+   <script type="module" src="main_listener.js"></script>
 </body>
 </html>

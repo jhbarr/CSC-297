@@ -36,6 +36,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
     const start = performance.now()
 
     // Create the index chunks of specified size
+    // TODO - dynamically allocate chunk to threads instead of preallocating them
     const chunks = [];
     for (let i = 0; i < arr_len; i += max_chunk)
     {
