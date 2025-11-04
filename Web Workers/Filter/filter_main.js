@@ -80,9 +80,6 @@ function initialize_workers(n_workers, max_chunk, arr_len)
         sharedArray[i] = i;
     }
 
-    // Get the start time
-    const start = performance.now()
-
     // Create the index chunks of specified size
     const indexChunks = [];
     for (let i = 0; i < arr_len; i += max_chunk)
@@ -190,7 +187,6 @@ export async function run_parallel_filter(arr_len, n_workers, max_chunk)
     // Get the total elapsed time
     const end = performance.now();
     const totalTime = (end - start) / 1000;
-    timeOutput.textContent = `Elapsed Time: ${totalTime}`;
 
     return [arr, totalTime]
 }
