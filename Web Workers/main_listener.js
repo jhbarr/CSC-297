@@ -89,7 +89,8 @@ filterButton.addEventListener('click', async () => {
                         "Thread Count": n_workers,
                         "Trial": trial,
                         "Parallel Time": totalTime,
-                        "Array Size": arr_len
+                        "Array Size": arr_len,
+                        "Chunk Size": max_chunk
                     }
 
                     data.push(object);
@@ -144,7 +145,8 @@ mapButton.addEventListener('click', async () => {
                         "Thread Count": n_workers,
                         "Trial": trial,
                         "Parallel Time": totalTime,
-                        "Array Size": arr_len
+                        "Array Size": arr_len,
+                        "Chunk Size": max_chunk
                     }
 
                     data.push(object);
@@ -198,7 +200,8 @@ reduceButton.addEventListener('click', async () => {
                         "Thread Count": n_workers,
                         "Trial": trial,
                         "Parallel Time": totalTime,
-                        "Array Size": arr_len
+                        "Array Size": arr_len,
+                        "Chunk Size": max_chunk
                     }
 
                     data.push(object);

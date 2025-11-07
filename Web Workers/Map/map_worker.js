@@ -16,7 +16,7 @@ function run_filter(sharedBuffer, indexChunk)
     // Iterate through the index chunk in the array
     for (let i = indexStart; i < indexEnd; i++)
     {
-        sharedArray[i] = sharedArray[i] * 2;
+        sharedArray[i] = sharedArray[i] * 3;
     }
 
     // Post a completion message to the main thread
