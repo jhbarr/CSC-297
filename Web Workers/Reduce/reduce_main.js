@@ -1,9 +1,9 @@
-// Grab DOM elements
-const input = document.getElementById('numberInput');
-const workerInput = document.getElementById('workerInput');
-const chunkInput = document.getElementById('chunkInput');
-const button = document.getElementById('sendButton');
-const output = document.getElementById('output');
+// // Grab DOM elements
+// const input = document.getElementById('numberInput');
+// const workerInput = document.getElementById('workerInput');
+// const chunkInput = document.getElementById('chunkInput');
+// const button = document.getElementById('sendButton');
+// const output = document.getElementById('output');
 
 function create_workers(worker, data) {
     return new Promise((resolve, reject) => {
@@ -54,7 +54,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
     const workers = [];
     for (let i = 0; i < n_workers; i++)
     {
-        workers.push(new Worker('reduce_worker.js'));
+        workers.push(new Worker('./Reduce/reduce_worker.js'));
     }
 
     // Collect all of the promises for the workers
@@ -77,7 +77,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
             throw error;
         });
     
-    console.log(partials)
+    // console.log(partials)
     
     // Combine partial sums into final sum
     const finalSum = partials.reduce((acc, val) => acc + (Number(val) || 0), 0);
@@ -90,20 +90,33 @@ async function run_workers(n_workers, max_chunk, arr_len)
 }
 
 
-// Send message to worker when button clicked
-button.addEventListener('click', async () => {
-    const arr_len = parseInt(input.value);
-    const n_workers = parseInt(workerInput.value);
-    const max_chunk = parseInt(chunkInput.value);
-
+export async function run_parallel_reduce(arr_len, n_workers, max_chunk)
+{
+    // Attempt to run the workers and display the final filtered array
+    let finalSum, totalTime;
     try {
-        const results = await run_workers(n_workers, max_chunk, arr_len); // wait for promise to resolve
-        const arr = results[0];
-        const time = results[1];
-
-        console.log('Final array:', arr);
-        output.textContent = `Reduced Array: ${arr}\nTime: ${time}`;
+        [finalSum, totalTime] = await run_workers(n_workers, max_chunk, arr_len); // wait for promise to resolve
     } catch (err) {
-        output.textContent = 'Error running workers: ' + err.message;
+        console.log('Error running workers ' + err);
     }
-});
+
+    return [finalSum, totalTime]
+}
+
+// // Send message to worker when button clicked
+// button.addEventListener('click', async () => {
+//     const arr_len = parseInt(input.value);
+//     const n_workers = parseInt(workerInput.value);
+//     const max_chunk = parseInt(chunkInput.value);
+
+//     try {
+//         const results = await run_workers(n_workers, max_chunk, arr_len); // wait for promise to resolve
+//         const arr = results[0];
+//         const time = results[1];
+
+//         console.log('Final array:', arr);
+//         output.textContent = `Reduced Array: ${arr}\nTime: ${time}`;
+//     } catch (err) {
+//         output.textContent = 'Error running workers: ' + err.message;
+//     }
+// });

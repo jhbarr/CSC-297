@@ -170,7 +170,7 @@ export async function run_parallel_map(arr_len, n_workers, max_chunk)
     // Get the total elapsed time
     const end = performance.now();
     const totalTime = (end - start) / 1000;
-    timeOutput.textContent = `Elapsed Time: ${totalTime}`;
+    // timeOutput.textContent = `Elapsed Time: ${totalTime}`;
 
     return [arr, totalTime]
 }
