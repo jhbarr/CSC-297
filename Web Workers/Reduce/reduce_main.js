@@ -74,6 +74,7 @@ async function run_workers(n_workers, max_chunk, arr_len)
         .catch((error) => {
             // One or more workers encountered an error
             console.error('One or more workers failed:', error);
+            throw error;
         });
     
     console.log(partials)
