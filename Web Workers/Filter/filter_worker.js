@@ -38,10 +38,7 @@ function run_filter(sharedBuffer, filterBuffer, indexChunk)
     {
         const val = sharedArray[i];
         filterArray[i] = predicate_func(val);
-    }
-
-    // Post a completion message to the main thread
-    this.postMessage({ status: 'done'});
+    } 
 }
 
 

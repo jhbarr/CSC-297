@@ -1,6 +1,6 @@
 import { run_parallel_filter } from "./Filter/filter_main.js";
 import { run_parallel_map } from "./Map/map_main.js";
-import { run_parallel_reduce } from "./Reduce/reduce_main.js";
+import { run_parallel_reduce } from "./Reduce_2/reduce_2_main.js";
 
 // Grab DOM elements
 const filterButton = document.getElementById('filterButton');
@@ -209,7 +209,7 @@ reduceButton.addEventListener('click', async () => {
             }
 
             // Save the data to a csv file
-            saveToCSV(data, "reduce");
+            saveToCSV(data, "reduce_2");
         }
         // Otherwise, simply use the user provided parameters to run the function and display the results to the user
         else
