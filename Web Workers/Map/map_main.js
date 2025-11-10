@@ -58,37 +58,15 @@ function create_workers(worker, data, indexChunks) {
 *   - n_workers (int) -> The number of workers that should be created to filter the array
 *   - max_chunk (int) -> The size of the index chunks that each thread will execute on at any give time
 *   - arr_len (int) -> The length of the array that is to be filtered
+*   - predicate_func_string (String) -> A string representation of the function that the worker thread should execute
 * 
 * OUTPUTS
 *   - workerPromises (Array) -> An array of promise objects that are associated with each worker
 *   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
 *   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered
 */
-function initialize_workers(n_workers, max_chunk, arr_len)
+function initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func_string)
 {
-    // Create a shared memory buffer to hold the array that is to be filtered
-    const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
-    const sharedArray = new Int32Array(sharedBuffer);
-
-    // Instantiate the values in the shared array
-    for (let i = 0; i < arr_len; i++) 
-    {
-        sharedArray[i] = i;
-    }
-
-    // Get the start time
-    const start = performance.now()
-
-    // Create the index chunks of specified size
-    const indexChunks = [];
-    for (let i = 0; i < arr_len; i += max_chunk)
-    {
-        const start = i;
-        const end = Math.min(i + max_chunk, arr_len);
-
-        indexChunks.push([start, end]);
-    }
-
     // Create the worker objects
     const workers = [];
     for (let i = 0; i < n_workers; i++)
@@ -102,6 +80,8 @@ function initialize_workers(n_workers, max_chunk, arr_len)
         // Create a data object to pass to the workers
         const worker_data = {
             sharedBuffer: sharedBuffer,
+            predicate_func_string: predicate_func_string,
+            indexChunks: 0
         }
 
         // Create the workers
@@ -109,7 +89,7 @@ function initialize_workers(n_workers, max_chunk, arr_len)
     });
 
     // Return the necessary information 
-    return [workerPromises, sharedArray]
+    return workerPromises
 }
 
 
@@ -146,18 +126,39 @@ async function run_workers(workerPromises, sharedArray)
 *   - arr_len (int) -> The length of the array that should be created
 *   - n_workers (int) -> The number of web worker threads that should execute the function
 *   - max_chunk (int) -> The size of the index chunks that should be given to the workers
+*   - predicate_func_string (String) -> A string representation of the function that the worker thread should execute
 *   
 * OUTPUTS
 *   - arr (Array) -> The final array after the function executing
 *   - totalTime (float) -> The amount of time that it took to execute the function
 */
-export async function run_parallel_map(arr_len, n_workers, max_chunk)
+export async function run_parallel_map(arr_len, n_workers, max_chunk, predicate_func_string)
 {
+    // Create a shared memory buffer to hold the array that is to be filtered
+    const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
+    const sharedArray = new Int32Array(sharedBuffer);
+
+    // Instantiate the values in the shared array
+    for (let i = 0; i < arr_len; i++) 
+    {
+        sharedArray[i] = i;
+    }
+
+    // Create the index chunks of specified size
+    const indexChunks = [];
+    for (let i = 0; i < arr_len; i += max_chunk)
+    {
+        const start = i;
+        const end = Math.min(i + max_chunk, arr_len);
+
+        indexChunks.push([start, end]);
+    }
+
     // Get the start time
     const start = performance.now()
 
     // Get the necessary information from the initialization of the worker threads
-    const [workerPromises, sharedArray] = initialize_workers(n_workers, max_chunk, arr_len); 
+    const workerPromises = initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func_string); 
 
     // Attempt to run the workers and display the final filtered array
     let arr;
@@ -173,4 +174,43 @@ export async function run_parallel_map(arr_len, n_workers, max_chunk)
     // timeOutput.textContent = `Elapsed Time: ${totalTime}`;
 
     return [arr, totalTime]
+}
+
+
+
+/*
+* run_serial_map() -> This function goes through the input array and execute the map function on each of the elements in the array in serial
+* 
+* INPUTS
+*   - arr_len (int) -> The length of the array to be filtered
+*  
+* OUTPUT
+*   [Array, Double] -> This function returns the mapped array plus the time it took to create it
+*/
+export function run_serial_map(arr_len, predicate_func_string)
+{
+    const array = new Array(arr_len)
+
+    // Turn the predicate function string into an actual function
+    const predicate_func = new Function('data', `return (${predicate_func_string})(data);`);
+
+    // Instantiate the values in the shared array
+    for (let i = 0; i < arr_len; i++) 
+    {
+        array[i] = i;
+    }
+
+    // Get the start time
+    const start = performance.now()
+    
+    // Go through and execute the predicate function on each of the elements
+    for (let i = 0; i < arr_len; i++) {
+        array[i] = predicate_func(i);
+    }
+
+    // Get the end time and total time
+    const end = performance.now();
+    const totalTime = (end - start) / 1000;
+
+    return [array, totalTime];
 }

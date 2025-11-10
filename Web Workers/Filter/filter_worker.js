@@ -1,20 +1,20 @@
 /*
-* predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
-* 
-* INPUTS
-*   - x (int) -> The number to be summed to
-* 
-* OUTPUTS
-*   - bool -> Whether the resulting number is even or not
-*/
-function predicate_func(x)
-{
-    let sum = 0;
-    for (let i = 0; i < x; i++) {
-        sum += 1;
-    }
-    return sum % 2 == 0;
-}
+// * predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
+// * 
+// * INPUTS
+// *   - x (int) -> The number to be summed to
+// * 
+// * OUTPUTS
+// *   - bool -> Whether the resulting number is even or not
+// */
+// function predicate_func(x)
+// {
+//     let sum = 0;
+//     for (let i = 0; i < x; i++) {
+//         sum += 1;
+//     }
+//     return sum % 2 == 0;
+// }
 
 /*
 * run_filter() -> This function runs map on the given array in the index window specified by the main thread
@@ -24,7 +24,7 @@ function predicate_func(x)
 *   - filterBuffer (SharedArrayBuffer) -> This is the shared memofy buffer where the results of the predicate functions are stored
 *   - indexChunk (Array) -> This contains the start and end indices that the worker thread should execute on in the sharedbuffer
 */
-function run_filter(sharedBuffer, filterBuffer, indexChunk)
+function run_filter(sharedBuffer, filterBuffer, indexChunk, predicate_func)
 {
     // Wrap the memory buffers with an array wrapper for easier access and update
     const sharedArray = new Int32Array(sharedBuffer);
@@ -44,10 +44,13 @@ function run_filter(sharedBuffer, filterBuffer, indexChunk)
 
 // Add a listener for messages from the main thread
 onmessage = function (event) {
-    const {sharedBuffer, filterBuffer, indexChunk} = event.data;
+    const {sharedBuffer, filterBuffer, predicate_func_string, indexChunk} = event.data;
+    
+    // Turn the predicate function string into an actual function
+    const predicate_func = new Function('data', `return (${predicate_func_string})(data);`);
 
     // Run the filtration using the provided data
-    run_filter(sharedBuffer, filterBuffer, indexChunk);
+    run_filter(sharedBuffer, filterBuffer, indexChunk, predicate_func);
 
     this.postMessage({ status: 'done'});
 };
