@@ -1,11 +1,11 @@
 /*
------- Map MAIN ------
+------ MAP MAIN ------
 This logic controls the creation of web workers that execute mapping on an array of specified size. 
 -------------------------
 */
 
 /*
-* create_workers() -> This function creates promise objects for each worker thread and then posts the initial data to those thread
+* create_workers() -> This function creates promise objects a worker thread instance and then posts the initial data to that worker
 *   It additionally handles what happens when a worker thread finished and "asks" for more indices to work with
 * 
 * INPUTS
@@ -16,7 +16,7 @@ This logic controls the creation of web workers that execute mapping on an array
 * OUTPUTS
 *   - promise (Promise) -> This function returns a promise object for the worker (as it executes it's code asynchronously)
 */
-function create_workers(worker, data, indexChunks) {
+function create_worker(worker, data, indexChunks) {
     // Create a promise object for the worker
     return new Promise((resolve, reject) => {
         worker.onmessage = (event) => {
@@ -62,10 +62,8 @@ function create_workers(worker, data, indexChunks) {
 * 
 * OUTPUTS
 *   - workerPromises (Array) -> An array of promise objects that are associated with each worker
-*   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
-*   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered
 */
-function initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func_string)
+function initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func)
 {
     // Create the worker objects
     const workers = [];
@@ -80,12 +78,12 @@ function initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func
         // Create a data object to pass to the workers
         const worker_data = {
             sharedBuffer: sharedBuffer,
-            predicate_func_string: predicate_func_string,
+            predicate_func_string: predicate_func.toString(),
             indexChunks: 0
         }
 
         // Create the workers
-        return create_workers(worker, worker_data, indexChunks);
+        return create_worker(worker, worker_data, indexChunks);
     });
 
     // Return the necessary information 
@@ -98,8 +96,7 @@ function initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func
 * 
 * INPUTS 
 *   - workerPromises (Array) -> An array of promise objects that are associated with each worker
-*   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
-*   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered 
+*   - sharedArray (Int32Array) -> The array that contains the original elements that are to be mapped 
 * 
 * OUTPUTS
 *   - finalArray (Array) -> The final filtered array
@@ -132,7 +129,7 @@ async function run_workers(workerPromises, sharedArray)
 *   - arr (Array) -> The final array after the function executing
 *   - totalTime (float) -> The amount of time that it took to execute the function
 */
-export async function run_parallel_map(arr_len, n_workers, max_chunk, predicate_func_string)
+export async function run_parallel_map(arr_len, n_workers, max_chunk, predicate_func)
 {
     // Create a shared memory buffer to hold the array that is to be filtered
     const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * arr_len);
@@ -158,7 +155,7 @@ export async function run_parallel_map(arr_len, n_workers, max_chunk, predicate_
     const start = performance.now()
 
     // Get the necessary information from the initialization of the worker threads
-    const workerPromises = initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func_string); 
+    const workerPromises = initialize_workers(sharedBuffer, n_workers, indexChunks, predicate_func); 
 
     // Attempt to run the workers and display the final filtered array
     let arr;
@@ -185,14 +182,12 @@ export async function run_parallel_map(arr_len, n_workers, max_chunk, predicate_
 *   - arr_len (int) -> The length of the array to be filtered
 *  
 * OUTPUT
-*   [Array, Double] -> This function returns the mapped array plus the time it took to create it
+*   - arr (Array) -> The final array after the function executing
+*   - totalTime (float) -> The amount of time that it took to execute the function
 */
-export function run_serial_map(arr_len, predicate_func_string)
+export function run_serial_map(arr_len, predicate_func)
 {
     const array = new Array(arr_len)
-
-    // Turn the predicate function string into an actual function
-    const predicate_func = new Function('data', `return (${predicate_func_string})(data);`);
 
     // Instantiate the values in the shared array
     for (let i = 0; i < arr_len; i++) 

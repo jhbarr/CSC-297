@@ -67,7 +67,6 @@ function create_workers(worker, data, indexChunks) {
 * 
 * OUTPUTS
 *   - workerPromises (Array) -> An array of promise objects that are associated with each worker
-*   - filterArray (Int32Array) -> An array wrapper around the shared memory buffer that each worker updates depending on predicate results
 *   - sharedArray (Int32Array) -> The array that contains the original elements that are to be filtered
 */
 function initialize_workers(n_workers, max_chunk, arr_len)
@@ -158,8 +157,7 @@ async function run_workers(workerPromises, sharedArray)
 *   - totalTime (float) -> The amount of time that it took to execute the function
 */
 export async function run_parallel_reduce(arr_len, n_workers, max_chunk)
-{
-    console.log("Running reduce map v2")
+{ 
     // Get the start time
     const start = performance.now()
 

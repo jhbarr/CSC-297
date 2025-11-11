@@ -103,9 +103,6 @@ filterButton.addEventListener('click', async () => {
     const arr_len = parseInt(input.value);
     const max_chunk = parseInt(chunkInput.value);
 
-    // Convert the predicate func to a string so that it can be passed to the functions
-    const predicate_func_string = filter_predicate_func.toString();
-
     try{
         // If the user has requested to time the functions, then 
         // Loop through the different number of worker threads from 1-8 and time them
@@ -120,12 +117,11 @@ filterButton.addEventListener('click', async () => {
                 for (let trial= 1; trial < 6; trial++)
                 {
                     // Run the function on the specified parameters
-                    const [parallelArr, paralleltime] = await run_parallel_filter(arr_len, n_workers, max_chunk, predicate_func_string);
-                    const [serialArr, serialTime] = run_serial_filter(arr_len, predicate_func_string);
+                    const [parallelArr, paralleltime] = await run_parallel_filter(arr_len, n_workers, max_chunk, filter_predicate_func);
+                    const [serialArr, serialTime] = run_serial_filter(arr_len, filter_predicate_func);
                     
                     // Add a check to make sure that the two outputted arrays are the same
-                    const same = same_array(parallelArr, serialArr);
-                    if (!same)
+                    if (!same_array(parallelArr, serialArr))
                     {
                         throw new Error("The two arrays are not the same");
                     }
@@ -189,9 +185,6 @@ mapButton.addEventListener('click', async () => {
     const arr_len = parseInt(input.value);
     const max_chunk = parseInt(chunkInput.value);
 
-    // Convert the predicate func to a string so that it can be passed to the functions
-    const predicate_func_string = map_predicate_func.toString();
-
     try{
         // If the user has requested to time the functions, then 
         // Loop through the different number of worker threads from 1-8 and time them
@@ -206,11 +199,10 @@ mapButton.addEventListener('click', async () => {
                 for (let trial= 1; trial < 6; trial++)
                 {
                     // Run the function on the specified parameters
-                    const [parallelArr, parallelTime] = await run_parallel_map(arr_len, n_workers, max_chunk, predicate_func_string);
-                    const [serialArr, serialTime] = run_serial_map(arr_len, predicate_func_string);
+                    const [parallelArr, parallelTime] = await run_parallel_map(arr_len, n_workers, max_chunk, map_predicate_func);
+                    const [serialArr, serialTime] = run_serial_map(arr_len, map_predicate_func);
 
-                    const same = same_array(parallelArr, serialArr)
-                    if (!same)
+                    if (!same_array(parallelArr, serialArr))
                     {
                         throw new Error("The two map arrays are not the same");
                     }
@@ -238,10 +230,8 @@ mapButton.addEventListener('click', async () => {
             // Get the number of workers from the html file
             const n_workers = parseInt(workerInput.value);
 
-            const [arr, totalTime] = await run_parallel_map(arr_len, n_workers, max_chunk, predicate_func_string); // wait for promise to resolve
-            const [serialArr, serialTime] = run_serial_map(arr_len, predicate_func_string);
-
-            console.log(same_array(arr, serialArr));
+            const [arr, totalTime] = await run_parallel_map(arr_len, n_workers, max_chunk, map_predicate_func); // wait for promise to resolve
+            const [serialArr, serialTime] = run_serial_map(arr_len, map_predicate_func);
 
             output.textContent = `Mapped Array: ${arr}`;
             timeOutput.textContent = `Total Time: ${totalTime}`;
