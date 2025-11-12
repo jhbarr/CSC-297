@@ -1,6 +1,6 @@
 import { run_parallel_filter, run_serial_filter } from "./Filter/filter_main.js";
 import { run_parallel_map, run_serial_map } from "./Map/map_main.js";
-import { run_parallel_reduce } from "./Reduce_2/reduce_2_main.js";
+import { run_parallel_reduce, run_serial_reduce } from "./Reduce_2/reduce_2_main.js";
 
 // Grab DOM elements
 const filterButton = document.getElementById('filterButton');
@@ -243,13 +243,46 @@ mapButton.addEventListener('click', async () => {
 });
 
 
+/*
+* summation() -> This is a helped function for the reduce predicate function. It sums a number to the given input
+* 
+* INPUTS
+*   - n (int) -> The number that the function should sum to
+* 
+* OUTPUTS
+*   - result (int)
+*/
+function summation(n) {
+    let result = 0;
+    for (let i = 1; i <= n; i++) {
+        result += i;
+    }
+    return result;
+}
+
+/*
+* reduce_predicate_func() -> This is the predicate function that will be run by the worker threads to reduce the given aray
+* 
+* INPUTS 
+*   - x (int)
+*   - y (int)
+*/
+function reduce_predicate_func(x, y) {
+    let result = 0;
+    for (let i = 1; i <= y; i++) {
+        result += i;
+    }
+
+    return x + y;
+}
+
 // Execute the reduce function
 reduceButton.addEventListener('click', async () => {
     // Get the necessary information from the HTML page
     const arr_len = parseInt(input.value);
     const max_chunk = parseInt(chunkInput.value);
 
-    try{
+
         // If the user has requested to time the functions, then 
         // Loop through the different number of worker threads from 1-8 and time them
         if (checkbox.checked)
@@ -263,13 +296,13 @@ reduceButton.addEventListener('click', async () => {
                 for (let trial= 1; trial < 6; trial++)
                 {
                     // Run the function on the specified parameters
-                    const [finalSum, totalTime] = await run_parallel_reduce(arr_len, n_workers, max_chunk);
+                    const [parallelRes, parallelTime] = await run_parallel_reduce(arr_len, n_workers, max_chunk, reduce_predicate_func);
 
                     // Add the resultant information to the export file
                     const object = {
                         "Thread Count": n_workers,
                         "Trial": trial,
-                        "Parallel Time": totalTime,
+                        "Parallel Time": parallelTime,
                         "Array Size": arr_len,
                         "Chunk Size": max_chunk
                     }
@@ -287,12 +320,11 @@ reduceButton.addEventListener('click', async () => {
             // Get the number of workers from the html file
             const n_workers = parseInt(workerInput.value);
 
-            const [finalSum, totalTime] = await run_parallel_reduce(arr_len, n_workers, max_chunk); // wait for promise to resolve
-            output.textContent = `Reduce Result: ${finalSum}`;
-            timeOutput.textContent = `Total Time: ${totalTime}`;
+            const [parallelRes, parallelTime] = await run_parallel_reduce(arr_len, n_workers, max_chunk, reduce_predicate_func); // wait for promise to resolve
+            const [serialRes, serialTime] = run_serial_reduce(arr_len, reduce_predicate_func);
+
+            output.textContent = `Reduce Result: ${parallelRes}     Serial Result: ${serialRes}`;
+            timeOutput.textContent = `Parallel Time: ${parallelTime}   Serial Time: ${serialTime}`;
         }
-    }
-    catch(err) {
-        output.textContent = 'Error running workers ' + err;
-    }
+   
 });
