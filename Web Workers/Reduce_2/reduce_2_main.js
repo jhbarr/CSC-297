@@ -96,9 +96,8 @@ function update_index_chunks()
 *   This function will take in a worker who needs to be assigned a task and that is (assumed to be) currently idle
 *   Ideally, no worker would be calling this function if they are not idle
 *   It then either:
-*       1. assigns the worker a task from the given set of working array index chunks
-*       2. tells the worker to wait if there are no index chunks left, but there are still other workers executing tasks
-*       3. Updates the necessary arrays and batch activates all idle workers (where necessary)
+*       1. tells the worker to wait if there are no index chunks left, but there are still other workers executing tasks
+*       2. Updates the necessary arrays and batch activates all idle workers (where necessary)
 * 
 * INPUTS
 *   - worker (Worker) -> A worker that needs to have a task assigned to it
@@ -126,7 +125,7 @@ function schedule_worker(worker)
     // Check the length of the current working array and see if it's small enough to reduce sequentially
     // If not, create a new working array, reduction array and index chunk array and send that information to the 
     // workers for another round of reductions
-    const THRESHOLD = 8;
+    const THRESHOLD = 10;
 
     const working_array_buffer_len = global_vars.reduction_array_buffer.byteLength / Int32Array.BYTES_PER_ELEMENT;
     if (allIdle && working_array_buffer_len >= THRESHOLD)
@@ -148,8 +147,8 @@ function schedule_worker(worker)
                 reduction_array_buffer: global_vars.reduction_array_buffer, 
                 index_chunks: global_vars.index_chunks,
                 index_chunk_info: global_vars.index_chunk_info,
-                predicate_func_string: global_vars.predicate_func.toString()
-        }
+                predicate_func_string: global_vars.predicate_func.toString(),
+            }
 
             // console.log("Main - sent info to worker");
             argument_vars.worker_pool[i].busy = true;
@@ -276,7 +275,7 @@ async function resolve_worker_promises(worker_promises)
 *   - res (Array) -> The final result produced by the reduction function
 *   - totalTime (float) -> The amount of time that it took to execute the function
 */
-export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predicate_func)
+export async function run_parallel_reduce(array, arr_len, n_workers, max_chunk, predicate_func)
 {
     // Set the global argument variables
     global_vars.predicate_func = predicate_func;
@@ -291,7 +290,7 @@ export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predica
      // Initialize the values in the shared array
     for (let i = 0; i < arr_len; i++) 
     {
-        working_array[i] = i;
+        working_array[i] = array[i];
     }
 
     // Creat the initial reduction array buffer and wrapper array
@@ -352,12 +351,12 @@ export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predica
 *   - res (Array) -> The final result produced by the reduction function
 *   - totalTime (float) -> The amount of time that it took to execute the function
 */
-export function run_serial_reduce(arr_len, predicate_func)
+export function run_serial_reduce(array, arr_len, predicate_func)
 {
     const working_array = [];
     for (let i = 0; i < arr_len; i++)
     {
-        working_array.push(i);
+        working_array.push(array[i]);
     }
 
     // Get the start time

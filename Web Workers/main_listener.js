@@ -319,9 +319,17 @@ reduceButton.addEventListener('click', async () => {
         {
             // Get the number of workers from the html file
             const n_workers = parseInt(workerInput.value);
+            
+            let working_array = [];
+            for (let i = 0; i < arr_len; i++){
+                const min = 1;
+                const max = arr_len;
+                const random_int = Math.floor(Math.random() * (max - min + 1)) + min;
+                working_array.push(random_int);
+            }
 
-            const [parallelRes, parallelTime] = await run_parallel_reduce(arr_len, n_workers, max_chunk, reduce_predicate_func); // wait for promise to resolve
-            const [serialRes, serialTime] = run_serial_reduce(arr_len, reduce_predicate_func);
+            const [parallelRes, parallelTime] = await run_parallel_reduce(working_array, arr_len, n_workers, max_chunk, reduce_predicate_func); // wait for promise to resolve
+            const [serialRes, serialTime] = run_serial_reduce(working_array, arr_len, reduce_predicate_func);
 
             output.textContent = `Reduce Result: ${parallelRes}     Serial Result: ${serialRes}`;
             timeOutput.textContent = `Parallel Time: ${parallelTime}   Serial Time: ${serialTime}`;
