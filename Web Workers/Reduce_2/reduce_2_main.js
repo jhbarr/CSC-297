@@ -9,11 +9,12 @@ const global_vars = {
     working_array_buffer: null,
     reduction_array_buffer: null,
     index_chunks: null,
+    index_chunk_info: null,
+    predicate_func: null,
 }
 
 const argument_vars = {
     worker_pool: null,
-    predicate_func: null,
     max_chunk: null,
 }
 
@@ -64,6 +65,12 @@ function update_index_chunks()
     const working_array_len = global_vars.working_array_buffer.byteLength / Int32Array.BYTES_PER_ELEMENT;
     const max_chunk = argument_vars.max_chunk;
 
+    
+    const index_chunk_info = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 2);
+    const ici_array = new Int32Array(index_chunk_info);
+    ici_array[0] = 0;
+    ici_array[1] = Math.ceil(working_array_len / max_chunk);
+
     // Create the index chunks of specified size
     const indexChunks = [];
     let indexCounter = 0;
@@ -76,6 +83,10 @@ function update_index_chunks()
         indexCounter += 1;
     }
 
+    // console.log("Main - index_chunks:", indexChunks);
+    // console.log("Main - index_chunk_info:", ici_array);
+
+    global_vars.index_chunk_info = index_chunk_info;
     global_vars.index_chunks = indexChunks;
 }
 
@@ -102,25 +113,6 @@ function schedule_worker(worker)
     const worker_pool_object = argument_vars.worker_pool.find(worker_pool_object => worker_pool_object.worker == worker);
     worker_pool_object.busy = false;
 
-    // 1. 
-    // Check to see if there are more index chunks available to send to the worker
-    // If so, we are not done processing the current working array
-    if (global_vars.index_chunks.length != 0)
-    {
-        const new_index_chunk = global_vars.index_chunks.shift();
-        const data = {
-                working_array_buffer: global_vars.working_array_buffer, 
-                reduction_array_buffer: global_vars.reduction_array_buffer, 
-                index_chunk: new_index_chunk,
-                predicate_func_string: argument_vars.predicate_func.toString()
-        }
-
-        worker_pool_object.busy = true;
-        worker.postMessage(data);
-        return;
-    }
-
-    // 2. 
     // If there are no more index chunks left to give the worker, check if all of the workers have finished executing
     // If so, we can create a new working array of smaller size, made up of the results from the previous reduction round
     // if not, we tell the worker to wait until all workers have finished
@@ -134,30 +126,34 @@ function schedule_worker(worker)
     // Check the length of the current working array and see if it's small enough to reduce sequentially
     // If not, create a new working array, reduction array and index chunk array and send that information to the 
     // workers for another round of reductions
-    const THRESHOLD = 50;
+    const THRESHOLD = 8;
 
     const working_array_buffer_len = global_vars.reduction_array_buffer.byteLength / Int32Array.BYTES_PER_ELEMENT;
     if (allIdle && working_array_buffer_len >= THRESHOLD)
     {
+
+        console.log()
         update_working_array();
         update_reduction_array();
         update_index_chunks();
 
-        for (let i = 0; i < argument_vars.worker_pool.length; i++) 
+        // console.log("Main - working array:", new Int32Array(global_vars.working_array_buffer));
+        // console.log("Main - reduction array:", new Int32Array(global_vars.reduction_array_buffer));
+
+        const loop_max = Math.min(argument_vars.worker_pool.length, global_vars.index_chunks.length);
+        for (let i = 0; i < loop_max; i++) 
         {
-            if (global_vars.index_chunks.length != 0)
-            {
-                const new_index_chunk = global_vars.index_chunks.shift();
-                const data = {
-                        working_array_buffer: global_vars.working_array_buffer, 
-                        reduction_array_buffer: global_vars.reduction_array_buffer, 
-                        index_chunk: new_index_chunk,
-                        predicate_func_string: argument_vars.predicate_func.toString()
-                }
-                
-                argument_vars.worker_pool[i].busy = true;
-                argument_vars.worker_pool[i].worker.postMessage(data);
-            }
+            const data = {
+                working_array_buffer: global_vars.working_array_buffer, 
+                reduction_array_buffer: global_vars.reduction_array_buffer, 
+                index_chunks: global_vars.index_chunks,
+                index_chunk_info: global_vars.index_chunk_info,
+                predicate_func_string: global_vars.predicate_func.toString()
+        }
+
+            // console.log("Main - sent info to worker");
+            argument_vars.worker_pool[i].busy = true;
+            argument_vars.worker_pool[i].worker.postMessage(data);
         }
         return;
     }
@@ -260,7 +256,7 @@ async function resolve_worker_promises(worker_promises)
 
     // Get the reduction array and reduce it sequentially
     const reduction_array = new Int32Array(global_vars.reduction_array_buffer);
-    const finalRes = reduction_array.reduce(argument_vars.predicate_func, 0); // THIS MIGHT THROWN AN ERROR - OR CAUSE WEIRD RESULTS
+    const finalRes = reduction_array.reduce(global_vars.predicate_func, 0); // THIS MIGHT THROWN AN ERROR - OR CAUSE WEIRD RESULTS
 
     return finalRes;
 }
@@ -282,10 +278,8 @@ async function resolve_worker_promises(worker_promises)
 */
 export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predicate_func)
 {
-    // if (arr_len < n_workers * max_chunk) throw new Error("Invalid Chunk Size");
-
     // Set the global argument variables
-    argument_vars.predicate_func = predicate_func;
+    global_vars.predicate_func = predicate_func;
     argument_vars.max_chunk = max_chunk;
 
     // Create the initial working array buffer and wrapper array
@@ -319,10 +313,22 @@ export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predica
 
     // Now we must start the idle workers by scheduling jobs for them to execute
     // We do this via calling the schedule_worker() function
-    for (let i = 0; i < worker_pool.length; i++)
-    {   
-        schedule_worker(worker_pool[i].worker);
+    const loop_max = Math.min(argument_vars.worker_pool.length, global_vars.index_chunks.length);
+    for (let i = 0; i < loop_max; i++) 
+    {
+        const data = {
+                working_array_buffer: global_vars.working_array_buffer, 
+                reduction_array_buffer: global_vars.reduction_array_buffer, 
+                index_chunks: global_vars.index_chunks,
+                index_chunk_info: global_vars.index_chunk_info,
+                predicate_func_string: global_vars.predicate_func.toString()
+        }
+
+        argument_vars.worker_pool[i].busy = true;
+        argument_vars.worker_pool[i].worker.postMessage(data);
     }
+
+    
 
     // Await for each of the worker promises to resolve so that we can return the final reduction result
     let res;
@@ -336,8 +342,16 @@ export async function run_parallel_reduce(arr_len, n_workers, max_chunk, predica
 }
 
 
-
-
+/*
+* run_serial_reduce() -> This function reduces an array of given size in sequence
+* 
+* INPUTS
+*   - arr_len (int) -> The length of the array that should be created
+*   - predicate_func (Function) -> The function used to reduce the array
+* 
+*   - res (Array) -> The final result produced by the reduction function
+*   - totalTime (float) -> The amount of time that it took to execute the function
+*/
 export function run_serial_reduce(arr_len, predicate_func)
 {
     const working_array = [];
@@ -349,7 +363,11 @@ export function run_serial_reduce(arr_len, predicate_func)
     // Get the start time
     const start = performance.now()
 
-    const res = working_array.reduce(predicate_func, 0);
+    let res = 0;
+    for (let i = 0; i < arr_len; i++)
+    {
+        res = predicate_func(res, working_array[i]);
+    }
 
     // Get the total elapsed time
     const end = performance.now();

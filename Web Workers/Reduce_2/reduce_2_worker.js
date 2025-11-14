@@ -34,13 +34,26 @@ function run_reduce(working_array_buffer, reduction_array_buffer, index_chunk, p
 
 // Add a listener for messages from the main thread
 onmessage = function (event) {
-    const {working_array_buffer, reduction_array_buffer, predicate_func_string, index_chunk} = event.data;
+    const {working_array_buffer, reduction_array_buffer, predicate_func_string, index_chunks, index_chunk_info} = event.data;
 
     // Turn the predicate function string into an actual function
     const predicate_func = new Function('return ' + predicate_func_string)(); 
+    const index_chunk_info_array = new Int32Array(index_chunk_info);
+    const total_chunks = index_chunk_info_array[1];
 
-    // Run the filtration using the provided data
-    run_reduce(working_array_buffer, reduction_array_buffer, index_chunk, predicate_func);
+    // console.log("worker - index_chunk_info:", index_chunk_info_array)
+
+    while (true)
+    {
+        const nextIndex = Atomics.add(index_chunk_info_array, 0, 1);
+        if (nextIndex >= total_chunks) break;
+
+        const next_chunk = index_chunks[nextIndex];
+        // console.log("Worker - nextIndex:", nextIndex);
+        // console.log("Worker - next_chunk", next_chunk);
+
+        run_reduce(working_array_buffer, reduction_array_buffer, next_chunk, predicate_func);
+    }
 
     this.postMessage({ status: 'done' });
 };
