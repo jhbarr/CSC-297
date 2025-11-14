@@ -83,9 +83,6 @@ function update_index_chunks()
         indexCounter += 1;
     }
 
-    // console.log("Main - index_chunks:", indexChunks);
-    // console.log("Main - index_chunk_info:", ici_array);
-
     global_vars.index_chunk_info = index_chunk_info;
     global_vars.index_chunks = indexChunks;
 }
@@ -136,9 +133,6 @@ function schedule_worker(worker)
         update_reduction_array();
         update_index_chunks();
 
-        // console.log("Main - working array:", new Int32Array(global_vars.working_array_buffer));
-        // console.log("Main - reduction array:", new Int32Array(global_vars.reduction_array_buffer));
-
         const loop_max = Math.min(argument_vars.worker_pool.length, global_vars.index_chunks.length);
         for (let i = 0; i < loop_max; i++) 
         {
@@ -150,7 +144,6 @@ function schedule_worker(worker)
                 predicate_func_string: global_vars.predicate_func.toString(),
             }
 
-            // console.log("Main - sent info to worker");
             argument_vars.worker_pool[i].busy = true;
             argument_vars.worker_pool[i].worker.postMessage(data);
         }
@@ -255,7 +248,7 @@ async function resolve_worker_promises(worker_promises)
 
     // Get the reduction array and reduce it sequentially
     const reduction_array = new Int32Array(global_vars.reduction_array_buffer);
-    const finalRes = reduction_array.reduce(global_vars.predicate_func, 0); // THIS MIGHT THROWN AN ERROR - OR CAUSE WEIRD RESULTS
+    const finalRes = reduction_array.reduce(global_vars.predicate_func, 1); // THIS MIGHT THROWN AN ERROR - OR CAUSE WEIRD RESULTS
 
     return finalRes;
 }
@@ -362,7 +355,7 @@ export function run_serial_reduce(array, arr_len, predicate_func)
     // Get the start time
     const start = performance.now()
 
-    let res = 0;
+    let res = 1;
     for (let i = 0; i < arr_len; i++)
     {
         res = predicate_func(res, working_array[i]);

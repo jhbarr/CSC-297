@@ -49,8 +49,7 @@ onmessage = function (event) {
         if (nextIndex >= total_chunks) break;
 
         const next_chunk = index_chunks[nextIndex];
-        // console.log("Worker - nextIndex:", nextIndex);
-        // console.log("Worker - next_chunk", next_chunk);
+        
 
         run_reduce(working_array_buffer, reduction_array_buffer, next_chunk, predicate_func);
     }

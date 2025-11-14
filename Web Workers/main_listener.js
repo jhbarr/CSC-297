@@ -243,22 +243,7 @@ mapButton.addEventListener('click', async () => {
 });
 
 
-/*
-* summation() -> This is a helped function for the reduce predicate function. It sums a number to the given input
-* 
-* INPUTS
-*   - n (int) -> The number that the function should sum to
-* 
-* OUTPUTS
-*   - result (int)
-*/
-function summation(n) {
-    let result = 0;
-    for (let i = 1; i <= n; i++) {
-        result += i;
-    }
-    return result;
-}
+
 
 /*
 * reduce_predicate_func() -> This is the predicate function that will be run by the worker threads to reduce the given aray
