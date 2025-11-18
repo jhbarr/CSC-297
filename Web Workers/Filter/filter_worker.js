@@ -1,22 +1,4 @@
 /*
-// * predicate_func() -> This function takes the sum of all numbers up to the given input and then returns whether that number is even
-// * 
-// * INPUTS
-// *   - x (int) -> The number to be summed to
-// * 
-// * OUTPUTS
-// *   - bool -> Whether the resulting number is even or not
-// */
-// function predicate_func(x)
-// {
-//     let sum = 0;
-//     for (let i = 0; i < x; i++) {
-//         sum += 1;
-//     }
-//     return sum % 2 == 0;
-// }
-
-/*
 * run_filter() -> This function runs map on the given array in the index window specified by the main thread
 * 
 * INPUTS 
