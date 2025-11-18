@@ -248,6 +248,8 @@ async function resolve_worker_promises(worker_promises)
 
     // Get the reduction array and reduce it sequentially
     const reduction_array = new Int32Array(global_vars.reduction_array_buffer);
+
+    // TODO - use sequential reduce function
     const finalRes = reduction_array.reduce(global_vars.predicate_func, 1); // THIS MIGHT THROWN AN ERROR - OR CAUSE WEIRD RESULTS
 
     return finalRes;
@@ -346,17 +348,11 @@ export async function run_parallel_reduce(array, arr_len, n_workers, max_chunk, 
 */
 export function run_serial_reduce(array, arr_len, predicate_func)
 {
-    const working_array = [];
-    for (let i = 0; i < arr_len; i++)
-    {
-        working_array.push(array[i]);
-    }
-
     // Get the start time
     const start = performance.now()
 
-    let res = 1;
-    for (let i = 0; i < arr_len; i++)
+    let res = working_array[0];
+    for (let i = 1; i < arr_len; i++)
     {
         res = predicate_func(res, working_array[i]);
     }
