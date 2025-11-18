@@ -16,14 +16,14 @@ function run_reduce(working_array_buffer, reduction_array_buffer, index_chunk, p
     const working_array = new Int32Array(working_array_buffer);
     const reduction_array = new Int32Array(reduction_array_buffer);
 
-    let partialVal = 0
-
     const indexStart = index_chunk[0];
     const indexEnd = index_chunk[1];
     const reduction_index = index_chunk[2];
 
+    let partialVal = working_array[indexStart];
+
     // Iterate through the index chunk in the array
-    for (let i = indexStart; i < indexEnd; i++) {
+    for (let i = indexStart + 1; i < indexEnd; i++) {
         const val = working_array[i];
         partialVal = predicate_func(partialVal, val);
     }
@@ -49,7 +49,7 @@ onmessage = function (event) {
         if (nextIndex >= total_chunks) break;
 
         const next_chunk = index_chunks[nextIndex];
-        
+
 
         run_reduce(working_array_buffer, reduction_array_buffer, next_chunk, predicate_func);
     }
