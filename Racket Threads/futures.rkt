@@ -1,8 +1,8 @@
 #lang racket
 
 ; Import the future visualization function (only for Dr Racket)
-(require racket/future
-         future-visualizer)
+; (require racket/future
+;          future-visualizer)
 
 ; Defines a function called 'any-double'
 ; This takes in a list and returns #t if there are any elements that are doubles of other elements in the list
@@ -51,5 +51,7 @@
             (or (any-double? l1)
                 (touch f2)
                 (touch f3))))))
+
+(expt2b)
 
 ;;;
