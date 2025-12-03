@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parallelized Web Workers</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.5em 1em;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h2>Execute different parallel functions on an array</h2>
+  <p>On this page you can execute the three main array functions using parallelized web workers</p>
+
+  <input type="number" id="workerInput" placeholder="Number of workers">
+  <input type="number" id="chunkInput" placeholder="Index chunk length">
+    <br/>
+  <button id="filterButton">Execute Filter</button>
+    <br/>
+  <button id="mapButton">Execute Map</button>
+    <br/>
+  <button id="reduceButton">Execute Reduce</button>
+
+  <p id="output"></p>
+  <p id="timeOutput"></p>
+
+  <!-- Link to main JavaScript -->
+   <script type="module" src="main.js"></script>
+</body>
+</html>
