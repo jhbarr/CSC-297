@@ -18,7 +18,7 @@ export default class Reduce
     index_chunk_array = [];
     index_info_buffer = null;
 
-     /*
+    /*
     * constructor - Define the instance variables of the class
     * 
     * INPUTS
@@ -224,7 +224,7 @@ export default class Reduce
 
         // Use serial reduce to come to a final value
         const final_array = new Int32Array(this.input_array_buffer);
-        const final_res =  final_array.reduce(input_function, 0); 
+        const final_res =  final_array.slice(1).reduce(input_function, final_array[0]); 
 
         // Get the end time and total time
         const end = performance.now()
@@ -253,7 +253,6 @@ export default class Reduce
         let final_res = array[0];
         for (let i = 1; i < array.length; i++)
         {
-            console.log(final_res);
             final_res = input_function(final_res, array[i]);
         }
 
